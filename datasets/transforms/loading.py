@@ -223,17 +223,17 @@ class _LoadAnnotations3D(LoadAnnotations):
             dict: The dict containing the semantic segmentation annotations.
         """
         pts_semantic_mask_path = results['pts_semantic_mask_path']
-
-        try:
-            mask_bytes = get(
-                pts_semantic_mask_path, backend_args=self.backend_args)
-            # add .copy() to fix read-only bug
-            pts_semantic_mask = np.frombuffer(
-                mask_bytes, dtype=self.seg_3d_dtype).copy()
-        except ConnectionError:
-            mmengine.check_file_exist(pts_semantic_mask_path)
-            pts_semantic_mask = np.fromfile(
-                pts_semantic_mask_path, dtype=np.int64)
+        if self.dataset_type=='semantickitti':
+            try:
+                mask_bytes = get(
+                    pts_semantic_mask_path, backend_args=self.backend_args)
+                # add .copy() to fix read-only bug
+                pts_semantic_mask = np.frombuffer(
+                    mask_bytes, dtype=self.seg_3d_dtype).copy()
+            except ConnectionError:
+                mmengine.check_file_exist(pts_semantic_mask_path)
+                pts_semantic_mask = np.fromfile(
+                    pts_semantic_mask_path, dtype=np.int64)
 
         pts_semantic_mask = pts_semantic_mask.astype(np.int64)
         if self.dataset_type == 'semantickitti':
@@ -257,22 +257,25 @@ class _LoadAnnotations3D(LoadAnnotations):
             dict: The dict containing the panoptic segmentation annotations.
         """
         pts_panoptic_mask_path = results['pts_panoptic_mask_path']
-
-        try:
-            mask_bytes = get(
-                pts_panoptic_mask_path, backend_args=self.backend_args)
-            # add .copy() to fix read-only bug
-            pts_panoptic_mask = np.frombuffer(
-                mask_bytes, dtype=self.seg_3d_dtype).copy()
-        except ConnectionError:
+        if self.dataset_type=='semantickitti':
+            try:
+                mask_bytes = get(
+                    pts_panoptic_mask_path, backend_args=self.backend_args)
+                # add .copy() to fix read-only bug
+                pts_panoptic_mask = np.frombuffer(
+                    mask_bytes, dtype=self.seg_3d_dtype).copy()
+            except ConnectionError:
+                mmengine.check_file_exist(pts_panoptic_mask_path)
+                pts_panoptic_mask = np.load(pts_panoptic_mask_path)
+        elif self.dataset_type == 'nuscenes':
             mmengine.check_file_exist(pts_panoptic_mask_path)
-            pts_panoptic_mask = np.load(pts_panoptic_mask_path)
+            pts_panoptic_mask = np.load(pts_panoptic_mask_path)['data']
 
         if self.dataset_type == 'semantickitti':
             pts_semantic_mask = pts_panoptic_mask.astype(np.int64)
             pts_semantic_mask = pts_semantic_mask % self.seg_offset
         elif self.dataset_type == 'nuscenes':
-            pts_panoptic_mask = pts_panoptic_mask['data']
+            # pts_panoptic_mask = pts_panoptic_mask['data']
             pts_semantic_mask = pts_panoptic_mask // self.seg_offset
 
         results['pts_semantic_mask'] = pts_semantic_mask

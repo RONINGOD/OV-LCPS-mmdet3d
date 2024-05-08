@@ -46,18 +46,18 @@ class _NuScenesDataset(Seg3DDataset):
             Defaults to False.
     """
     METAINFO = {
-        'classes': ('barrier', 'bicycle', 'bus', 'car', 'construction_vehicle', 'motorcycle',
+        'classes': ('noise','barrier', 'bicycle', 'bus', 'car', 'construction_vehicle', 'motorcycle',
                     'pedestrian', 'traffic_cone', 'trailer', 'truck', 'driveable_surface', 'other_flat', 'sidewalk',
                     'terrain', 'manmade', 'vegetation'),
-        'palette': [ [220,220,  0], [119, 11, 32],
+        'palette': [[0,0,0], [220,220,  0], [119, 11, 32],
                     [0, 60, 100], [0, 0, 250], [230,230,250],
                     [0, 0, 230], [220, 20, 60], [250, 170, 30],
                     [200, 150, 0], [0, 0, 110], [128, 64, 128], [0,250, 250],
                     [244, 35, 232], [152, 251, 152], [70, 70, 70], [107,142, 35]],
         'seg_valid_class_ids':
-        tuple(range(16)),
+        tuple(range(17)),
         'seg_all_class_ids':
-        tuple(range(16)),
+        tuple(range(17)),
     }
 
     def __init__(self,
@@ -108,7 +108,38 @@ class _NuScenesDataset(Seg3DDataset):
             dict: Has `ann_info` in training stage. And
             all path has been converted to absolute path.
         """
-        info = super().parse_data_info(info)
+        if self.modality['use_lidar']:
+            info['lidar_points']['lidar_path'] = \
+                osp.join(
+                    self.data_prefix.get('pts', ''),
+                    info['lidar_points']['lidar_path'])
+            if 'num_pts_feats' in info['lidar_points']:
+                info['num_pts_feats'] = info['lidar_points']['num_pts_feats']
+            info['lidar_path'] = info['lidar_points']['lidar_path']
+
+        if self.modality['use_camera']:
+            for cam_id, img_info in info['images'].items():
+                if 'img_path' in img_info:
+                    img_info['img_path'] = osp.join(
+                        self.data_prefix.get('img', ''), cam_id, img_info['img_path'])
+
+        if 'pts_instance_mask_path' in info:
+            info['pts_instance_mask_path'] = \
+                osp.join(self.data_prefix.get('pts_instance_mask', ''),
+                         info['pts_instance_mask_path'])
+
+        if 'pts_semantic_mask_path' in info:
+            info['pts_semantic_mask_path'] = \
+                osp.join(self.data_prefix.get('pts_semantic_mask', ''),
+                         info['pts_semantic_mask_path'])
+
+        # only be used in `PointSegClassMapping` in pipeline
+        # to map original semantic class to valid category ids.
+        info['seg_label_mapping'] = self.seg_label_mapping
+
+        # 'eval_ann_info' will be updated in loading transforms
+        if self.test_mode and self.load_eval_anns:
+            info['eval_ann_info'] = dict()
         if 'pts_panoptic_mask_path' in info:
             info['pts_panoptic_mask_path'] = \
                 osp.join(self.data_prefix.get('pts_panoptic_mask', ''),

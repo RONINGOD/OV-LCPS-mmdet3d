@@ -1,4 +1,5 @@
 grid_shape = [480, 360, 32]
+num_classes = 17 # 20
 model = dict(
     type='_P3Former',
     data_preprocessor=dict(
@@ -27,7 +28,7 @@ model = dict(
         norm_cfg=dict(type='BN1d', eps=1e-5, momentum=0.1)),
     decode_head=dict(
         type='_P3FormerHead',
-        num_classes=20,
+        num_classes=num_classes,
         num_queries=128,
         embed_dims=128,
         point_cloud_range=[0, -3.14159265359, -4, 50, 3.14159265359, 2],

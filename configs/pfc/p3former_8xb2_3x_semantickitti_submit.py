@@ -1,5 +1,5 @@
 _base_ = [
-    '../_base_/datasets/semantickitti_panoptic_lpmix.py', '../_base_/models/p3former.py',
+    '../_base_/datasets/nuscenes_panoptic_lpmix.py', '../_base_/models/p3former.py',
     '../_base_/default_runtime.py'
 ]
 
