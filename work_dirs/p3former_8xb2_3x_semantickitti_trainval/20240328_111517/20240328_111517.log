@@ -1,0 +1,979 @@
+2024/03/28 11:15:17 - mmengine - INFO - 
+------------------------------------------------------------
+System environment:
+    sys.platform: linux
+    Python: 3.8.0 (default, Nov  6 2019, 21:49:08) [GCC 7.3.0]
+    CUDA available: True
+    numpy_random_seed: 1516306777
+    GPU 0: NVIDIA GeForce RTX 3060
+    CUDA_HOME: /usr/local/cuda
+    NVCC: Cuda compilation tools, release 11.3, V11.3.58
+    GCC: gcc (Ubuntu 7.5.0-6ubuntu2) 7.5.0
+    PyTorch: 1.10.1+cu111
+    PyTorch compiling details: PyTorch built with:
+  - GCC 7.3
+  - C++ Version: 201402
+  - Intel(R) Math Kernel Library Version 2020.0.0 Product Build 20191122 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v2.2.3 (Git Hash 7336ca9f055cf1bfa13efb658fe15dc9b41f0740)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - CUDA Runtime 11.1
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86
+  - CuDNN 8.0.5
+  - Magma 2.5.2
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.1, CUDNN_VERSION=8.0.5, CXX_COMPILER=/opt/rh/devtoolset-7/root/usr/bin/c++, CXX_FLAGS= -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -fopenmp -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -DEDGE_PROFILER_USE_KINETO -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-unused-local-typedefs -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_VERSION=1.10.1, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, 
+
+    TorchVision: 0.11.2+cu111
+    OpenCV: 4.9.0
+    MMEngine: 0.7.4
+
+Runtime environment:
+    cudnn_benchmark: False
+    mp_cfg: {'mp_start_method': 'fork', 'opencv_num_threads': 0}
+    dist_cfg: {'backend': 'nccl'}
+    seed: 1516306777
+    Distributed launcher: pytorch
+    Distributed training: True
+    GPU number: 1
+------------------------------------------------------------
+
+2024/03/28 11:15:20 - mmengine - INFO - Config:
+dataset_type = '_SemanticKittiDataset'
+data_root = '/home/coisini/data/kitti/dataset/'
+class_names = [
+    'car', 'bicycle', 'motorcycle', 'truck', 'bus', 'person', 'bicyclist',
+    'motorcyclist', 'road', 'parking', 'sidewalk', 'other-ground', 'building',
+    'fence', 'vegetation', 'trunck', 'terrian', 'pole', 'traffic-sign'
+]
+labels_map = dict({
+    0: 19,
+    1: 19,
+    10: 0,
+    11: 1,
+    13: 4,
+    15: 2,
+    16: 4,
+    18: 3,
+    20: 4,
+    30: 5,
+    31: 6,
+    32: 7,
+    40: 8,
+    44: 9,
+    48: 10,
+    49: 11,
+    50: 12,
+    51: 13,
+    52: 19,
+    60: 8,
+    70: 14,
+    71: 15,
+    72: 16,
+    80: 17,
+    81: 18,
+    99: 19,
+    252: 0,
+    253: 6,
+    254: 5,
+    255: 7,
+    256: 4,
+    257: 4,
+    258: 3,
+    259: 4
+})
+learning_map_inv = dict({
+    0: 10,
+    1: 11,
+    2: 15,
+    3: 18,
+    4: 20,
+    5: 30,
+    6: 31,
+    7: 32,
+    8: 40,
+    9: 44,
+    10: 48,
+    11: 49,
+    12: 50,
+    13: 51,
+    14: 70,
+    15: 71,
+    16: 72,
+    17: 80,
+    18: 81,
+    19: 0
+})
+metainfo = dict(
+    classes=[
+        'car', 'bicycle', 'motorcycle', 'truck', 'bus', 'person', 'bicyclist',
+        'motorcyclist', 'road', 'parking', 'sidewalk', 'other-ground',
+        'building', 'fence', 'vegetation', 'trunck', 'terrian', 'pole',
+        'traffic-sign'
+    ],
+    seg_label_mapping=dict({
+        0: 19,
+        1: 19,
+        10: 0,
+        11: 1,
+        13: 4,
+        15: 2,
+        16: 4,
+        18: 3,
+        20: 4,
+        30: 5,
+        31: 6,
+        32: 7,
+        40: 8,
+        44: 9,
+        48: 10,
+        49: 11,
+        50: 12,
+        51: 13,
+        52: 19,
+        60: 8,
+        70: 14,
+        71: 15,
+        72: 16,
+        80: 17,
+        81: 18,
+        99: 19,
+        252: 0,
+        253: 6,
+        254: 5,
+        255: 7,
+        256: 4,
+        257: 4,
+        258: 3,
+        259: 4
+    }),
+    max_label=259)
+input_modality = dict(use_lidar=True, use_camera=False)
+backend_args = None
+pre_transform = [
+    dict(
+        type='LoadPointsFromFile',
+        coord_type='LIDAR',
+        load_dim=4,
+        use_dim=4,
+        backend_args=None),
+    dict(
+        type='_LoadAnnotations3D',
+        with_bbox_3d=False,
+        with_label_3d=False,
+        with_panoptic_3d=True,
+        seg_3d_dtype='np.int32',
+        seg_offset=65536,
+        dataset_type='semantickitti',
+        backend_args=None),
+    dict(type='PointSegClassMapping')
+]
+train_pipeline = [
+    dict(
+        type='LoadPointsFromFile',
+        coord_type='LIDAR',
+        load_dim=4,
+        use_dim=4,
+        backend_args=None),
+    dict(
+        type='_LoadAnnotations3D',
+        with_bbox_3d=False,
+        with_label_3d=False,
+        with_panoptic_3d=True,
+        seg_3d_dtype='np.int32',
+        seg_offset=65536,
+        dataset_type='semantickitti',
+        backend_args=None),
+    dict(type='PointSegClassMapping'),
+    dict(
+        type='RandomChoice',
+        transforms=[[{
+            'type':
+            '_LaserMix',
+            'num_areas': [3, 4, 5, 6],
+            'pitch_angles': [-25, 3],
+            'pre_transform': [{
+                'type': 'LoadPointsFromFile',
+                'coord_type': 'LIDAR',
+                'load_dim': 4,
+                'use_dim': 4
+            }, {
+                'type': '_LoadAnnotations3D',
+                'with_bbox_3d': False,
+                'with_label_3d': False,
+                'with_panoptic_3d': True,
+                'seg_3d_dtype': 'np.int32',
+                'seg_offset': 65536,
+                'dataset_type': 'semantickitti'
+            }, {
+                'type': 'PointSegClassMapping'
+            }],
+            'prob':
+            0.5
+        }],
+                    [{
+                        'type':
+                        '_PolarMix',
+                        'instance_classes': [0, 1, 2, 3, 4, 5, 6, 7],
+                        'swap_ratio':
+                        0.5,
+                        'rotate_paste_ratio':
+                        1.0,
+                        'pre_transform': [{
+                            'type': 'LoadPointsFromFile',
+                            'coord_type': 'LIDAR',
+                            'load_dim': 4,
+                            'use_dim': 4
+                        }, {
+                            'type': '_LoadAnnotations3D',
+                            'with_bbox_3d': False,
+                            'with_label_3d': False,
+                            'with_panoptic_3d': True,
+                            'seg_3d_dtype': 'np.int32',
+                            'seg_offset': 65536,
+                            'dataset_type': 'semantickitti'
+                        }, {
+                            'type': 'PointSegClassMapping'
+                        }],
+                        'prob':
+                        0.5
+                    }]],
+        prob=[0.2, 0.8]),
+    dict(
+        type='RandomFlip3D',
+        sync_2d=False,
+        flip_ratio_bev_horizontal=0.5,
+        flip_ratio_bev_vertical=0.5),
+    dict(
+        type='GlobalRotScaleTrans',
+        rot_range=[-0.78539816, 0.78539816],
+        scale_ratio_range=[0.95, 1.05],
+        translation_std=[0.1, 0.1, 0.1]),
+    dict(
+        type='Pack3DDetInputs',
+        keys=['points', 'pts_semantic_mask', 'pts_instance_mask'])
+]
+test_pipeline = [
+    dict(
+        type='LoadPointsFromFile',
+        coord_type='LIDAR',
+        load_dim=4,
+        use_dim=4,
+        backend_args=None),
+    dict(
+        type='_LoadAnnotations3D',
+        with_bbox_3d=False,
+        with_label_3d=False,
+        with_panoptic_3d=True,
+        seg_3d_dtype='np.int32',
+        seg_offset=65536,
+        dataset_type='semantickitti',
+        backend_args=None),
+    dict(type='PointSegClassMapping'),
+    dict(
+        type='Pack3DDetInputs',
+        keys=['points', 'pts_semantic_mask', 'pts_instance_mask'])
+]
+train_dataloader = dict(
+    batch_size=1,
+    num_workers=4,
+    sampler=dict(type='DefaultSampler', shuffle=True),
+    dataset=dict(
+        type='RepeatDataset',
+        times=1,
+        dataset=dict(
+            type='_SemanticKittiDataset',
+            data_root='/home/coisini/data/kitti/dataset/',
+            data_prefix=dict(
+                pts='',
+                img='',
+                pts_instance_mask='',
+                pts_semantic_mask='',
+                pts_panoptic_mask=''),
+            ann_file='semantickitti_infos_trainval.pkl',
+            pipeline=[
+                dict(
+                    type='LoadPointsFromFile',
+                    coord_type='LIDAR',
+                    load_dim=4,
+                    use_dim=4,
+                    backend_args=None),
+                dict(
+                    type='_LoadAnnotations3D',
+                    with_bbox_3d=False,
+                    with_label_3d=False,
+                    with_panoptic_3d=True,
+                    seg_3d_dtype='np.int32',
+                    seg_offset=65536,
+                    dataset_type='semantickitti',
+                    backend_args=None),
+                dict(type='PointSegClassMapping'),
+                dict(
+                    type='RandomChoice',
+                    transforms=[[{
+                        'type':
+                        '_LaserMix',
+                        'num_areas': [3, 4, 5, 6],
+                        'pitch_angles': [-25, 3],
+                        'pre_transform': [{
+                            'type': 'LoadPointsFromFile',
+                            'coord_type': 'LIDAR',
+                            'load_dim': 4,
+                            'use_dim': 4
+                        }, {
+                            'type': '_LoadAnnotations3D',
+                            'with_bbox_3d': False,
+                            'with_label_3d': False,
+                            'with_panoptic_3d': True,
+                            'seg_3d_dtype': 'np.int32',
+                            'seg_offset': 65536,
+                            'dataset_type': 'semantickitti'
+                        }, {
+                            'type': 'PointSegClassMapping'
+                        }],
+                        'prob':
+                        0.5
+                    }],
+                                [{
+                                    'type':
+                                    '_PolarMix',
+                                    'instance_classes':
+                                    [0, 1, 2, 3, 4, 5, 6, 7],
+                                    'swap_ratio':
+                                    0.5,
+                                    'rotate_paste_ratio':
+                                    1.0,
+                                    'pre_transform': [{
+                                        'type': 'LoadPointsFromFile',
+                                        'coord_type': 'LIDAR',
+                                        'load_dim': 4,
+                                        'use_dim': 4
+                                    }, {
+                                        'type':
+                                        '_LoadAnnotations3D',
+                                        'with_bbox_3d':
+                                        False,
+                                        'with_label_3d':
+                                        False,
+                                        'with_panoptic_3d':
+                                        True,
+                                        'seg_3d_dtype':
+                                        'np.int32',
+                                        'seg_offset':
+                                        65536,
+                                        'dataset_type':
+                                        'semantickitti'
+                                    }, {
+                                        'type':
+                                        'PointSegClassMapping'
+                                    }],
+                                    'prob':
+                                    0.5
+                                }]],
+                    prob=[0.2, 0.8]),
+                dict(
+                    type='RandomFlip3D',
+                    sync_2d=False,
+                    flip_ratio_bev_horizontal=0.5,
+                    flip_ratio_bev_vertical=0.5),
+                dict(
+                    type='GlobalRotScaleTrans',
+                    rot_range=[-0.78539816, 0.78539816],
+                    scale_ratio_range=[0.95, 1.05],
+                    translation_std=[0.1, 0.1, 0.1]),
+                dict(
+                    type='Pack3DDetInputs',
+                    keys=['points', 'pts_semantic_mask', 'pts_instance_mask'])
+            ],
+            metainfo=dict(
+                classes=[
+                    'car', 'bicycle', 'motorcycle', 'truck', 'bus', 'person',
+                    'bicyclist', 'motorcyclist', 'road', 'parking', 'sidewalk',
+                    'other-ground', 'building', 'fence', 'vegetation',
+                    'trunck', 'terrian', 'pole', 'traffic-sign'
+                ],
+                seg_label_mapping=dict({
+                    0: 19,
+                    1: 19,
+                    10: 0,
+                    11: 1,
+                    13: 4,
+                    15: 2,
+                    16: 4,
+                    18: 3,
+                    20: 4,
+                    30: 5,
+                    31: 6,
+                    32: 7,
+                    40: 8,
+                    44: 9,
+                    48: 10,
+                    49: 11,
+                    50: 12,
+                    51: 13,
+                    52: 19,
+                    60: 8,
+                    70: 14,
+                    71: 15,
+                    72: 16,
+                    80: 17,
+                    81: 18,
+                    99: 19,
+                    252: 0,
+                    253: 6,
+                    254: 5,
+                    255: 7,
+                    256: 4,
+                    257: 4,
+                    258: 3,
+                    259: 4
+                }),
+                max_label=259),
+            modality=dict(use_lidar=True, use_camera=False),
+            ignore_index=19,
+            backend_args=None)))
+test_dataloader = dict(
+    batch_size=1,
+    num_workers=1,
+    sampler=dict(type='DefaultSampler', shuffle=False),
+    dataset=dict(
+        type='RepeatDataset',
+        times=1,
+        dataset=dict(
+            type='_SemanticKittiDataset',
+            data_root='/home/coisini/data/kitti/dataset/',
+            data_prefix=dict(
+                pts='',
+                img='',
+                pts_instance_mask='',
+                pts_semantic_mask='',
+                pts_panoptic_mask=''),
+            ann_file='semantickitti_infos_val.pkl',
+            pipeline=[
+                dict(
+                    type='LoadPointsFromFile',
+                    coord_type='LIDAR',
+                    load_dim=4,
+                    use_dim=4,
+                    backend_args=None),
+                dict(
+                    type='_LoadAnnotations3D',
+                    with_bbox_3d=False,
+                    with_label_3d=False,
+                    with_panoptic_3d=True,
+                    seg_3d_dtype='np.int32',
+                    seg_offset=65536,
+                    dataset_type='semantickitti',
+                    backend_args=None),
+                dict(type='PointSegClassMapping'),
+                dict(
+                    type='Pack3DDetInputs',
+                    keys=['points', 'pts_semantic_mask', 'pts_instance_mask'])
+            ],
+            metainfo=dict(
+                classes=[
+                    'car', 'bicycle', 'motorcycle', 'truck', 'bus', 'person',
+                    'bicyclist', 'motorcyclist', 'road', 'parking', 'sidewalk',
+                    'other-ground', 'building', 'fence', 'vegetation',
+                    'trunck', 'terrian', 'pole', 'traffic-sign'
+                ],
+                seg_label_mapping=dict({
+                    0: 19,
+                    1: 19,
+                    10: 0,
+                    11: 1,
+                    13: 4,
+                    15: 2,
+                    16: 4,
+                    18: 3,
+                    20: 4,
+                    30: 5,
+                    31: 6,
+                    32: 7,
+                    40: 8,
+                    44: 9,
+                    48: 10,
+                    49: 11,
+                    50: 12,
+                    51: 13,
+                    52: 19,
+                    60: 8,
+                    70: 14,
+                    71: 15,
+                    72: 16,
+                    80: 17,
+                    81: 18,
+                    99: 19,
+                    252: 0,
+                    253: 6,
+                    254: 5,
+                    255: 7,
+                    256: 4,
+                    257: 4,
+                    258: 3,
+                    259: 4
+                }),
+                max_label=259),
+            modality=dict(use_lidar=True, use_camera=False),
+            ignore_index=19,
+            test_mode=True,
+            backend_args=None)))
+val_dataloader = dict(
+    batch_size=1,
+    num_workers=1,
+    sampler=dict(type='DefaultSampler', shuffle=False),
+    dataset=dict(
+        type='RepeatDataset',
+        times=1,
+        dataset=dict(
+            type='_SemanticKittiDataset',
+            data_root='/home/coisini/data/kitti/dataset/',
+            data_prefix=dict(
+                pts='',
+                img='',
+                pts_instance_mask='',
+                pts_semantic_mask='',
+                pts_panoptic_mask=''),
+            ann_file='semantickitti_infos_val.pkl',
+            pipeline=[
+                dict(
+                    type='LoadPointsFromFile',
+                    coord_type='LIDAR',
+                    load_dim=4,
+                    use_dim=4,
+                    backend_args=None),
+                dict(
+                    type='_LoadAnnotations3D',
+                    with_bbox_3d=False,
+                    with_label_3d=False,
+                    with_panoptic_3d=True,
+                    seg_3d_dtype='np.int32',
+                    seg_offset=65536,
+                    dataset_type='semantickitti',
+                    backend_args=None),
+                dict(type='PointSegClassMapping'),
+                dict(
+                    type='Pack3DDetInputs',
+                    keys=['points', 'pts_semantic_mask', 'pts_instance_mask'])
+            ],
+            metainfo=dict(
+                classes=[
+                    'car', 'bicycle', 'motorcycle', 'truck', 'bus', 'person',
+                    'bicyclist', 'motorcyclist', 'road', 'parking', 'sidewalk',
+                    'other-ground', 'building', 'fence', 'vegetation',
+                    'trunck', 'terrian', 'pole', 'traffic-sign'
+                ],
+                seg_label_mapping=dict({
+                    0: 19,
+                    1: 19,
+                    10: 0,
+                    11: 1,
+                    13: 4,
+                    15: 2,
+                    16: 4,
+                    18: 3,
+                    20: 4,
+                    30: 5,
+                    31: 6,
+                    32: 7,
+                    40: 8,
+                    44: 9,
+                    48: 10,
+                    49: 11,
+                    50: 12,
+                    51: 13,
+                    52: 19,
+                    60: 8,
+                    70: 14,
+                    71: 15,
+                    72: 16,
+                    80: 17,
+                    81: 18,
+                    99: 19,
+                    252: 0,
+                    253: 6,
+                    254: 5,
+                    255: 7,
+                    256: 4,
+                    257: 4,
+                    258: 3,
+                    259: 4
+                }),
+                max_label=259),
+            modality=dict(use_lidar=True, use_camera=False),
+            ignore_index=19,
+            test_mode=True,
+            backend_args=None)))
+val_evaluator = dict(
+    type='_PanopticSegMetric',
+    thing_class_inds=[0, 1, 2, 3, 4, 5, 6, 7],
+    stuff_class_inds=[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    min_num_points=50,
+    id_offset=65536,
+    dataset_type='semantickitti',
+    learning_map_inv=dict({
+        0: 10,
+        1: 11,
+        2: 15,
+        3: 18,
+        4: 20,
+        5: 30,
+        6: 31,
+        7: 32,
+        8: 40,
+        9: 44,
+        10: 48,
+        11: 49,
+        12: 50,
+        13: 51,
+        14: 70,
+        15: 71,
+        16: 72,
+        17: 80,
+        18: 81,
+        19: 0
+    }))
+test_evaluator = dict(
+    type='_PanopticSegMetric',
+    thing_class_inds=[0, 1, 2, 3, 4, 5, 6, 7],
+    stuff_class_inds=[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    min_num_points=50,
+    id_offset=65536,
+    dataset_type='semantickitti',
+    learning_map_inv=dict({
+        0: 10,
+        1: 11,
+        2: 15,
+        3: 18,
+        4: 20,
+        5: 30,
+        6: 31,
+        7: 32,
+        8: 40,
+        9: 44,
+        10: 48,
+        11: 49,
+        12: 50,
+        13: 51,
+        14: 70,
+        15: 71,
+        16: 72,
+        17: 80,
+        18: 81,
+        19: 0
+    }))
+vis_backends = [dict(type='LocalVisBackend')]
+visualizer = dict(
+    type='Det3DLocalVisualizer',
+    vis_backends=[dict(type='LocalVisBackend')],
+    name='visualizer')
+grid_shape = [480, 360, 32]
+model = dict(
+    type='_P3Former',
+    data_preprocessor=dict(
+        type='_Det3DDataPreprocessor',
+        voxel=True,
+        voxel_type='cylindrical',
+        voxel_layer=dict(
+            grid_shape=[480, 360, 32],
+            point_cloud_range=[0, -3.14159265359, -4, 50, 3.14159265359, 2],
+            max_num_points=-1,
+            max_voxels=-1)),
+    voxel_encoder=dict(
+        type='SegVFE',
+        feat_channels=[64, 128, 256, 256],
+        in_channels=6,
+        with_voxel_center=True,
+        feat_compression=16,
+        return_point_feats=False),
+    backbone=dict(
+        type='_Asymm3DSpconv',
+        grid_size=[480, 360, 32],
+        input_channels=16,
+        base_channels=32,
+        norm_cfg=dict(type='BN1d', eps=1e-05, momentum=0.1),
+        more_conv=True,
+        out_channels=256),
+    decode_head=dict(
+        type='_P3FormerHead',
+        num_classes=20,
+        num_queries=128,
+        embed_dims=256,
+        point_cloud_range=[0, -3.14159265359, -4, 50, 3.14159265359, 2],
+        assigner_zero_layer_cfg=dict(
+            type='mmdet.HungarianAssigner',
+            match_costs=[
+                dict(
+                    type='mmdet.FocalLossCost',
+                    weight=1.0,
+                    binary_input=True,
+                    gamma=2.0,
+                    alpha=0.25),
+                dict(type='mmdet.DiceCost', weight=2.0, pred_act=True)
+            ]),
+        assigner_cfg=dict(
+            type='mmdet.HungarianAssigner',
+            match_costs=[
+                dict(
+                    type='mmdet.FocalLossCost',
+                    gamma=4.0,
+                    alpha=0.25,
+                    weight=1.0),
+                dict(
+                    type='mmdet.FocalLossCost',
+                    weight=1.0,
+                    binary_input=True,
+                    gamma=2.0,
+                    alpha=0.25),
+                dict(type='mmdet.DiceCost', weight=2.0, pred_act=True)
+            ]),
+        sampler_cfg=dict(type='_MaskPseudoSampler'),
+        loss_mask=dict(
+            type='mmdet.FocalLoss',
+            use_sigmoid=True,
+            gamma=2.0,
+            alpha=0.25,
+            reduction='mean',
+            loss_weight=1.0),
+        loss_dice=dict(type='mmdet.DiceLoss', loss_weight=2.0),
+        loss_cls=dict(
+            type='mmdet.FocalLoss',
+            use_sigmoid=True,
+            gamma=4.0,
+            alpha=0.25,
+            loss_weight=1.0),
+        num_decoder_layers=6,
+        cls_channels=(256, 256, 20),
+        mask_channels=(256, 256, 256, 256, 256),
+        thing_class=[0, 1, 2, 3, 4, 5, 6, 7],
+        stuff_class=[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+        ignore_index=19),
+    train_cfg=None,
+    test_cfg=dict(mode='whole'))
+default_scope = 'mmdet3d'
+default_hooks = dict(
+    timer=dict(type='IterTimerHook'),
+    logger=dict(type='LoggerHook', interval=50),
+    param_scheduler=dict(type='ParamSchedulerHook'),
+    checkpoint=dict(type='CheckpointHook', interval=5),
+    sampler_seed=dict(type='DistSamplerSeedHook'),
+    visualization=dict(type='Det3DVisualizationHook'))
+env_cfg = dict(
+    cudnn_benchmark=False,
+    mp_cfg=dict(mp_start_method='fork', opencv_num_threads=0),
+    dist_cfg=dict(backend='nccl'))
+log_processor = dict(type='LogProcessor', window_size=50, by_epoch=True)
+log_level = 'INFO'
+load_from = 'checkpoints/semantickitti_val_62.6.pth'
+resume = False
+train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=36, val_interval=1)
+val_cfg = dict(type='ValLoop')
+test_cfg = dict(type='TestLoop')
+lr = 0.0008
+optim_wrapper = dict(
+    type='OptimWrapper',
+    optimizer=dict(type='AdamW', lr=0.0008, weight_decay=0.01))
+param_scheduler = [
+    dict(
+        type='MultiStepLR',
+        begin=0,
+        end=36,
+        by_epoch=True,
+        milestones=[24, 32],
+        gamma=0.2)
+]
+custom_imports = dict(
+    imports=[
+        'p3former.backbones.cylinder3d',
+        'p3former.data_preprocessors.data_preprocessor',
+        'p3former.decode_heads.p3former_head', 'p3former.segmentors.p3former',
+        'p3former.task_modules.samplers.mask_pseduo_sampler',
+        'evaluation.metrics.panoptic_seg_metric',
+        'datasets.semantickitti_dataset', 'datasets.transforms.loading',
+        'datasets.transforms.transforms_3d'
+    ],
+    allow_failed_imports=False)
+launcher = 'pytorch'
+work_dir = './work_dirs/p3former_8xb2_3x_semantickitti_trainval'
+
+2024/03/28 11:15:27 - mmengine - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+before_train:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(NORMAL      ) DistSamplerSeedHook                
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+after_train_epoch:
+(NORMAL      ) IterTimerHook                      
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_val_epoch:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+before_val_iter:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(NORMAL      ) IterTimerHook                      
+(NORMAL      ) Det3DVisualizationHook             
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_val_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+after_train:
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_test_epoch:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+before_test_iter:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_test_iter:
+(NORMAL      ) IterTimerHook                      
+(NORMAL      ) Det3DVisualizationHook             
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_test_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_run:
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+2024/03/28 11:15:30 - mmengine - WARNING - The prefix is not set in metric class _PanopticSegMetric.
+2024/03/28 11:15:33 - mmengine - INFO - Load checkpoint from checkpoints/semantickitti_val_62.6.pth
+2024/03/28 11:15:46 - mmengine - INFO - Epoch(test) [  50/4071]    eta: 0:17:28  time: 0.2609  data_time: 0.0077  memory: 1204  
+2024/03/28 11:15:59 - mmengine - INFO - Epoch(test) [ 100/4071]    eta: 0:17:05  time: 0.2558  data_time: 0.0064  memory: 1209  
+2024/03/28 11:16:11 - mmengine - INFO - Epoch(test) [ 150/4071]    eta: 0:16:29  time: 0.2407  data_time: 0.0066  memory: 1209  
+2024/03/28 11:16:23 - mmengine - INFO - Epoch(test) [ 200/4071]    eta: 0:16:06  time: 0.2412  data_time: 0.0064  memory: 1206  
+2024/03/28 11:16:35 - mmengine - INFO - Epoch(test) [ 250/4071]    eta: 0:15:50  time: 0.2454  data_time: 0.0067  memory: 1219  
+2024/03/28 11:16:48 - mmengine - INFO - Epoch(test) [ 300/4071]    eta: 0:15:36  time: 0.2467  data_time: 0.0068  memory: 1239  
+2024/03/28 11:17:00 - mmengine - INFO - Epoch(test) [ 350/4071]    eta: 0:15:25  time: 0.2511  data_time: 0.0066  memory: 1234  
+2024/03/28 11:17:12 - mmengine - INFO - Epoch(test) [ 400/4071]    eta: 0:15:08  time: 0.2386  data_time: 0.0067  memory: 1229  
+2024/03/28 11:17:25 - mmengine - INFO - Epoch(test) [ 450/4071]    eta: 0:14:57  time: 0.2498  data_time: 0.0068  memory: 1220  
+2024/03/28 11:17:36 - mmengine - INFO - Epoch(test) [ 500/4071]    eta: 0:14:36  time: 0.2255  data_time: 0.0066  memory: 1169  
+2024/03/28 11:17:46 - mmengine - INFO - Epoch(test) [ 550/4071]    eta: 0:14:09  time: 0.1979  data_time: 0.0093  memory: 1152  
+2024/03/28 11:17:55 - mmengine - INFO - Epoch(test) [ 600/4071]    eta: 0:13:39  time: 0.1794  data_time: 0.0062  memory: 1051  
+2024/03/28 11:18:04 - mmengine - INFO - Epoch(test) [ 650/4071]    eta: 0:13:13  time: 0.1816  data_time: 0.0120  memory: 1062  
+2024/03/28 11:18:14 - mmengine - INFO - Epoch(test) [ 700/4071]    eta: 0:12:52  time: 0.1954  data_time: 0.0068  memory: 1135  
+2024/03/28 11:18:25 - mmengine - INFO - Epoch(test) [ 750/4071]    eta: 0:12:40  time: 0.2250  data_time: 0.0114  memory: 1160  
+2024/03/28 11:18:36 - mmengine - INFO - Epoch(test) [ 800/4071]    eta: 0:12:25  time: 0.2134  data_time: 0.0069  memory: 1159  
+2024/03/28 11:18:45 - mmengine - INFO - Epoch(test) [ 850/4071]    eta: 0:12:08  time: 0.1964  data_time: 0.0067  memory: 1156  
+2024/03/28 11:18:54 - mmengine - INFO - Epoch(test) [ 900/4071]    eta: 0:11:46  time: 0.1674  data_time: 0.0061  memory: 1065  
+2024/03/28 11:19:03 - mmengine - INFO - Epoch(test) [ 950/4071]    eta: 0:11:28  time: 0.1782  data_time: 0.0060  memory: 1063  
+2024/03/28 11:19:13 - mmengine - INFO - Epoch(test) [1000/4071]    eta: 0:11:14  time: 0.2001  data_time: 0.0125  memory: 1164  
+2024/03/28 11:19:25 - mmengine - INFO - Epoch(test) [1050/4071]    eta: 0:11:07  time: 0.2527  data_time: 0.0100  memory: 1219  
+2024/03/28 11:19:37 - mmengine - INFO - Epoch(test) [1100/4071]    eta: 0:10:58  time: 0.2301  data_time: 0.0091  memory: 1206  
+2024/03/28 11:19:46 - mmengine - INFO - Epoch(test) [1150/4071]    eta: 0:10:42  time: 0.1870  data_time: 0.0096  memory: 1097  
+2024/03/28 11:19:55 - mmengine - INFO - Epoch(test) [1200/4071]    eta: 0:10:27  time: 0.1827  data_time: 0.0064  memory: 1071  
+2024/03/28 11:20:04 - mmengine - INFO - Epoch(test) [1250/4071]    eta: 0:10:11  time: 0.1725  data_time: 0.0061  memory: 1044  
+2024/03/28 11:20:14 - mmengine - INFO - Epoch(test) [1300/4071]    eta: 0:09:58  time: 0.1979  data_time: 0.0143  memory: 1145  
+2024/03/28 11:20:25 - mmengine - INFO - Epoch(test) [1350/4071]    eta: 0:09:49  time: 0.2314  data_time: 0.0107  memory: 1167  
+2024/03/28 11:20:35 - mmengine - INFO - Epoch(test) [1400/4071]    eta: 0:09:36  time: 0.1991  data_time: 0.0065  memory: 1112  
+2024/03/28 11:20:46 - mmengine - INFO - Epoch(test) [1450/4071]    eta: 0:09:26  time: 0.2211  data_time: 0.0102  memory: 1168  
+2024/03/28 11:20:57 - mmengine - INFO - Epoch(test) [1500/4071]    eta: 0:09:15  time: 0.2176  data_time: 0.0114  memory: 1156  
+2024/03/28 11:21:08 - mmengine - INFO - Epoch(test) [1550/4071]    eta: 0:09:04  time: 0.2148  data_time: 0.0065  memory: 1165  
+2024/03/28 11:21:18 - mmengine - INFO - Epoch(test) [1600/4071]    eta: 0:08:53  time: 0.2100  data_time: 0.0066  memory: 1145  
+2024/03/28 11:21:31 - mmengine - INFO - Epoch(test) [1650/4071]    eta: 0:08:45  time: 0.2505  data_time: 0.0098  memory: 1209  
+2024/03/28 11:21:43 - mmengine - INFO - Epoch(test) [1700/4071]    eta: 0:08:36  time: 0.2417  data_time: 0.0064  memory: 1190  
+2024/03/28 11:21:55 - mmengine - INFO - Epoch(test) [1750/4071]    eta: 0:08:26  time: 0.2424  data_time: 0.0073  memory: 1195  
+2024/03/28 11:22:08 - mmengine - INFO - Epoch(test) [1800/4071]    eta: 0:08:17  time: 0.2454  data_time: 0.0066  memory: 1229  
+2024/03/28 11:22:20 - mmengine - INFO - Epoch(test) [1850/4071]    eta: 0:08:08  time: 0.2584  data_time: 0.0069  memory: 1216  
+2024/03/28 11:22:32 - mmengine - INFO - Epoch(test) [1900/4071]    eta: 0:07:58  time: 0.2304  data_time: 0.0090  memory: 1150  
+2024/03/28 11:22:43 - mmengine - INFO - Epoch(test) [1950/4071]    eta: 0:07:47  time: 0.2292  data_time: 0.0065  memory: 1119  
+2024/03/28 11:22:53 - mmengine - INFO - Epoch(test) [2000/4071]    eta: 0:07:35  time: 0.1997  data_time: 0.0066  memory: 1098  
+2024/03/28 11:23:03 - mmengine - INFO - Epoch(test) [2050/4071]    eta: 0:07:23  time: 0.1946  data_time: 0.0066  memory: 1080  
+2024/03/28 11:23:12 - mmengine - INFO - Epoch(test) [2100/4071]    eta: 0:07:11  time: 0.1858  data_time: 0.0163  memory: 1069  
+2024/03/28 11:23:22 - mmengine - INFO - Epoch(test) [2150/4071]    eta: 0:06:58  time: 0.1850  data_time: 0.0092  memory: 1074  
+2024/03/28 11:23:31 - mmengine - INFO - Epoch(test) [2200/4071]    eta: 0:06:46  time: 0.1871  data_time: 0.0072  memory: 1077  
+2024/03/28 11:23:39 - mmengine - INFO - Epoch(test) [2250/4071]    eta: 0:06:33  time: 0.1621  data_time: 0.0155  memory: 1065  
+2024/03/28 11:23:49 - mmengine - INFO - Epoch(test) [2300/4071]    eta: 0:06:21  time: 0.1887  data_time: 0.0069  memory: 1095  
+2024/03/28 11:23:56 - mmengine - INFO - Epoch(test) [2350/4071]    eta: 0:06:08  time: 0.1558  data_time: 0.0100  memory: 1060  
+2024/03/28 11:24:05 - mmengine - INFO - Epoch(test) [2400/4071]    eta: 0:05:56  time: 0.1812  data_time: 0.0073  memory: 1065  
+2024/03/28 11:24:14 - mmengine - INFO - Epoch(test) [2450/4071]    eta: 0:05:44  time: 0.1652  data_time: 0.0160  memory: 1050  
+2024/03/28 11:24:25 - mmengine - INFO - Epoch(test) [2500/4071]    eta: 0:05:33  time: 0.2178  data_time: 0.0068  memory: 1153  
+2024/03/28 11:24:36 - mmengine - INFO - Epoch(test) [2550/4071]    eta: 0:05:23  time: 0.2257  data_time: 0.0069  memory: 1154  
+2024/03/28 11:24:45 - mmengine - INFO - Epoch(test) [2600/4071]    eta: 0:05:11  time: 0.1734  data_time: 0.0073  memory: 1066  
+2024/03/28 11:24:54 - mmengine - INFO - Epoch(test) [2650/4071]    eta: 0:05:00  time: 0.1965  data_time: 0.0071  memory: 1076  
+2024/03/28 11:25:05 - mmengine - INFO - Epoch(test) [2700/4071]    eta: 0:04:50  time: 0.2120  data_time: 0.0111  memory: 1100  
+2024/03/28 11:25:16 - mmengine - INFO - Epoch(test) [2750/4071]    eta: 0:04:39  time: 0.2205  data_time: 0.0069  memory: 1135  
+2024/03/28 11:25:27 - mmengine - INFO - Epoch(test) [2800/4071]    eta: 0:04:29  time: 0.2223  data_time: 0.0153  memory: 1129  
+2024/03/28 11:25:38 - mmengine - INFO - Epoch(test) [2850/4071]    eta: 0:04:19  time: 0.2166  data_time: 0.0068  memory: 1102  
+2024/03/28 11:25:49 - mmengine - INFO - Epoch(test) [2900/4071]    eta: 0:04:08  time: 0.2230  data_time: 0.0077  memory: 1125  
+2024/03/28 11:26:00 - mmengine - INFO - Epoch(test) [2950/4071]    eta: 0:03:58  time: 0.2153  data_time: 0.0068  memory: 1109  
+2024/03/28 11:26:11 - mmengine - INFO - Epoch(test) [3000/4071]    eta: 0:03:47  time: 0.2266  data_time: 0.0165  memory: 1093  
+2024/03/28 11:26:23 - mmengine - INFO - Epoch(test) [3050/4071]    eta: 0:03:37  time: 0.2375  data_time: 0.0115  memory: 1172  
+2024/03/28 11:26:35 - mmengine - INFO - Epoch(test) [3100/4071]    eta: 0:03:27  time: 0.2380  data_time: 0.0118  memory: 1181  
+2024/03/28 11:26:46 - mmengine - INFO - Epoch(test) [3150/4071]    eta: 0:03:16  time: 0.2135  data_time: 0.0135  memory: 1148  
+2024/03/28 11:26:56 - mmengine - INFO - Epoch(test) [3200/4071]    eta: 0:03:05  time: 0.2046  data_time: 0.0072  memory: 1108  
+2024/03/28 11:27:07 - mmengine - INFO - Epoch(test) [3250/4071]    eta: 0:02:55  time: 0.2193  data_time: 0.0155  memory: 1141  
+2024/03/28 11:27:17 - mmengine - INFO - Epoch(test) [3300/4071]    eta: 0:02:44  time: 0.2013  data_time: 0.0070  memory: 1107  
+2024/03/28 11:27:27 - mmengine - INFO - Epoch(test) [3350/4071]    eta: 0:02:33  time: 0.2072  data_time: 0.0072  memory: 1127  
+2024/03/28 11:27:39 - mmengine - INFO - Epoch(test) [3400/4071]    eta: 0:02:23  time: 0.2256  data_time: 0.0074  memory: 1201  
+2024/03/28 11:27:51 - mmengine - INFO - Epoch(test) [3450/4071]    eta: 0:02:12  time: 0.2538  data_time: 0.0130  memory: 1224  
+2024/03/28 11:28:02 - mmengine - INFO - Epoch(test) [3500/4071]    eta: 0:02:02  time: 0.2091  data_time: 0.0074  memory: 1184  
+2024/03/28 11:28:11 - mmengine - INFO - Epoch(test) [3550/4071]    eta: 0:01:51  time: 0.1810  data_time: 0.0073  memory: 1067  
+2024/03/28 11:28:21 - mmengine - INFO - Epoch(test) [3600/4071]    eta: 0:01:40  time: 0.2027  data_time: 0.0073  memory: 1122  
+2024/03/28 11:28:30 - mmengine - INFO - Epoch(test) [3650/4071]    eta: 0:01:29  time: 0.1739  data_time: 0.0077  memory: 1062  
+2024/03/28 11:28:39 - mmengine - INFO - Epoch(test) [3700/4071]    eta: 0:01:18  time: 0.1826  data_time: 0.0074  memory: 1070  
+2024/03/28 11:28:49 - mmengine - INFO - Epoch(test) [3750/4071]    eta: 0:01:08  time: 0.2106  data_time: 0.0128  memory: 1139  
+2024/03/28 11:29:00 - mmengine - INFO - Epoch(test) [3800/4071]    eta: 0:00:57  time: 0.2070  data_time: 0.0075  memory: 1136  
+2024/03/28 11:29:09 - mmengine - INFO - Epoch(test) [3850/4071]    eta: 0:00:46  time: 0.1906  data_time: 0.0114  memory: 1053  
+2024/03/28 11:29:20 - mmengine - INFO - Epoch(test) [3900/4071]    eta: 0:00:36  time: 0.2179  data_time: 0.0188  memory: 1140  
+2024/03/28 11:29:29 - mmengine - INFO - Epoch(test) [3950/4071]    eta: 0:00:25  time: 0.1827  data_time: 0.0116  memory: 1060  
+2024/03/28 11:29:40 - mmengine - INFO - Epoch(test) [4000/4071]    eta: 0:00:15  time: 0.2164  data_time: 0.0094  memory: 1117  
+2024/03/28 11:29:52 - mmengine - INFO - Epoch(test) [4050/4071]    eta: 0:00:04  time: 0.2443  data_time: 0.0081  memory: 1121  
+2024/03/28 11:31:30 - mmengine - INFO - |        |   IoU   |   PQ   |   RQ   |  SQ   |
+2024/03/28 11:31:30 - mmengine - INFO - |all     | 0.6677 | 0.6263 | 0.7241 | 0.7618 |
+2024/03/28 11:31:30 - mmengine - INFO - |car     | 0.9723 | 0.9426 | 0.9879 | 0.9541 |
+2024/03/28 11:31:30 - mmengine - INFO - |bicycle | 0.5575 | 0.6351 | 0.7774 | 0.8170 |
+2024/03/28 11:31:30 - mmengine - INFO - |torcycle| 0.7346 | 0.7468 | 0.8057 | 0.9269 |
+2024/03/28 11:31:30 - mmengine - INFO - |truck   | 0.9094 | 0.8088 | 0.8364 | 0.9670 |
+2024/03/28 11:31:30 - mmengine - INFO - |bus     | 0.8011 | 0.6785 | 0.7191 | 0.9435 |
+2024/03/28 11:31:30 - mmengine - INFO - |person  | 0.7678 | 0.8195 | 0.8965 | 0.9141 |
+2024/03/28 11:31:30 - mmengine - INFO - |icyclist| 0.9050 | 0.9182 | 0.9733 | 0.9434 |
+2024/03/28 11:31:30 - mmengine - INFO - |rcyclist| 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+2024/03/28 11:31:30 - mmengine - INFO - |road    | 0.9356 | 0.9366 | 0.9993 | 0.9373 |
+2024/03/28 11:31:30 - mmengine - INFO - |parking | 0.3587 | 0.3001 | 0.4188 | 0.7166 |
+2024/03/28 11:31:30 - mmengine - INFO - |sidewalk| 0.8040 | 0.7726 | 0.9275 | 0.8330 |
+2024/03/28 11:31:30 - mmengine - INFO - |r-ground| 0.0010 | 0.0000 | 0.0000 | 0.0000 |
+2024/03/28 11:31:30 - mmengine - INFO - |building| 0.9081 | 0.8890 | 0.9741 | 0.9126 |
+2024/03/28 11:31:30 - mmengine - INFO - |fence   | 0.6056 | 0.2480 | 0.3409 | 0.7275 |
+2024/03/28 11:31:30 - mmengine - INFO - |getation| 0.8780 | 0.8683 | 0.9978 | 0.8702 |
+2024/03/28 11:31:30 - mmengine - INFO - |trunck  | 0.6799 | 0.5451 | 0.7277 | 0.7490 |
+2024/03/28 11:31:30 - mmengine - INFO - |terrian | 0.7324 | 0.5947 | 0.7987 | 0.7445 |
+2024/03/28 11:31:30 - mmengine - INFO - |pole    | 0.6576 | 0.6154 | 0.8134 | 0.7566 |
+2024/03/28 11:31:30 - mmengine - INFO - |fic-sign| 0.4778 | 0.5806 | 0.7640 | 0.7600 |
+2024/03/28 11:31:30 - mmengine - INFO - True Positive: 
+2024/03/28 11:31:30 - mmengine - INFO - 44126	|	1303	|	647	|	225	|	1409	|	2685	|	1219	|	0	|	4068	|	397	|	3776	|	0	|	3964	|	1166	|	4062	|	2650	|	3189	|	3208	|	1408	|	0
+2024/03/28 11:31:30 - mmengine - INFO - 743	|	297	|	115	|	57	|	248	|	260	|	35	|	4	|	3	|	204	|	295	|	49	|	104	|	2346	|	9	|	861	|	811	|	741	|	336	|	1701
+2024/03/28 11:31:30 - mmengine - INFO - 337	|	449	|	197	|	31	|	853	|	360	|	32	|	78	|	3	|	898	|	295	|	376	|	107	|	2162	|	9	|	1122	|	796	|	731	|	534	|	0
+2024/03/28 11:31:30 - mmengine - INFO - Epoch(test) [4071/4071]    pq: 0.6263  pq_dagger: 0.6625  sq_mean: 0.7618  rq_mean: 0.7241  miou: 0.6677  pq_stuff: 0.5773  rq_stuff: 0.7057  sq_stuff: 0.7279  pq_things: 0.6937  rq_things: 0.7495  sq_things: 0.8083  data_time: 0.0089  time: 0.2122
