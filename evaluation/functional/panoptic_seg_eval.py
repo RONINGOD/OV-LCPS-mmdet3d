@@ -180,12 +180,14 @@ class EvalPanoptic:
         if self.logger is not None:
             # print_log('|        |   IoU   |   PQ   |   RQ   |  SQ   |',
             #           self.logger)
-            print_log('|{:20s}|{:8s}|{:8s}|{:8s}|{:8s}|'.format('', 'IoU', 'PQ', 'RQ', 'SQ'),self.logger)
+            print_log('|{:20s}|{:10s}|{:10s}|{:10s}|{:10s}|'.format('', 'IoU', 'PQ', 'RQ', 'SQ'),self.logger)
             for k, v in output_dict.items():
                 print_log(
                     '|{}| {:.6f}% | {:.6f}% | {:.6f}% | {:.6f}% |'.format(
                         k.ljust(20), v['miou']*100, v['pq']*100, v['rq']*100, v['sq']*100),
                     self.logger)
+            for k,v in result_dicts.items():
+                print_log(f'{k}:\t{v*100}%',self.logger)
             print_log('True Positive: ', self.logger)
             print_log('\t|\t'.join([str(x) for x in self.pan_tp]), self.logger)
             print_log('False Positive: ')
@@ -198,6 +200,8 @@ class EvalPanoptic:
             for k, v in output_dict.items():
                 print('|{}| {:.6f}% | {:.6f}% | {:.6f}% | {:.6f}% |'.format(
                         k.ljust(20), v['miou']*100, v['pq']*100, v['rq']*100, v['sq']*100))
+            for k,v in result_dicts.items():
+                print(f'{k}:\t{v*100}%')
             print('True Positive: ')
             print('\t|\t'.join([str(x) for x in self.pan_tp]))
             print('False Positive: ')

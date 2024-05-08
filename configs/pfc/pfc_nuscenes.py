@@ -1,5 +1,5 @@
 _base_ = [
-    '../_base_/datasets/nuscenes_panoptic_lpmix.py', '../_base_/models/p3former.py',
+    '../_base_/datasets/nuscenes_ov_panoptic_lpmix.py', '../_base_/models/pfc.py',
     '../_base_/default_runtime.py'
 ]
 
@@ -9,7 +9,7 @@ _base_ = [
 train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=40, val_interval=1)
 val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
-
+num_classes = 17
 model = dict(
     voxel_encoder=dict(
         feat_channels=[64, 128, 256, 256],
@@ -26,11 +26,11 @@ model = dict(
         num_decoder_layers=6,
         num_queries=128,
         embed_dims=256,
-        cls_channels=(256, 256, 20),
+        cls_channels=(256, 256, num_classes),
         mask_channels=(256, 256, 256, 256, 256),
-        thing_class=[0,1,2,3,4,5,6,7],
-        stuff_class=[8,9,10,11,12,13,14,15,16,17,18],
-        ignore_index=19
+        thing_class=[1,2,3,4,5,6,7,8,9,10],
+        stuff_class=[11,12,13,14,15,16],
+        ignore_index=0
     ))
 
 
@@ -56,29 +56,29 @@ param_scheduler = [
 
 train_dataloader = dict(batch_size=1, )
 
-test_pipeline = [
-    dict(
-        type='LoadPointsFromFile',
-        coord_type='LIDAR',
-        load_dim=4,
-        use_dim=4,
-        backend_args=None),
-    dict(type='_Pack3DDetInputs', keys=['points', 'lidar_path'])
-]
+# test_pipeline = [
+#     dict(
+#         type='LoadPointsFromFile',
+#         coord_type='LIDAR',
+#         load_dim=5,
+#         use_dim=4,
+#         backend_args=None),
+#     dict(type='_Pack3DDetInputs', keys=['points', 'lidar_path'])
+# ]
 
-test_dataloader = dict(
-    batch_size=1,
-    num_workers=1,
-    sampler=dict(type='DefaultSampler', shuffle=False),
-    dataset=dict(
-        type='RepeatDataset',
-        times=1,
-        dataset=dict(
-            pipeline=test_pipeline,
-            ann_file='semantickitti_infos_mini.pkl'))
-)
+# test_dataloader = dict(
+#     batch_size=1,
+#     num_workers=1,
+#     sampler=dict(type='DefaultSampler', shuffle=False),
+#     dataset=dict(
+#         type='RepeatDataset',
+#         times=1,
+#         dataset=dict(
+#             pipeline=test_pipeline,
+#             ann_file='semantickitti_infos_mini.pkl'))
+# )
 
-test_evaluator = dict(submission_prefix='semantickitti_submission')
+# test_evaluator = dict(submission_prefix='semantickitti_submission')
 
 default_hooks = dict(checkpoint=dict(type='CheckpointHook', interval=5))
 
@@ -91,6 +91,7 @@ custom_imports = dict(
         'p3former.task_modules.samplers.mask_pseduo_sampler',
         'evaluation.metrics.panoptic_seg_metric',
         'datasets.semantickitti_dataset',
+        'datasets.nuscenes_dataset',
         'datasets.transforms.loading',
         'datasets.transforms.transforms_3d',
         'datasets.transforms.formating',
