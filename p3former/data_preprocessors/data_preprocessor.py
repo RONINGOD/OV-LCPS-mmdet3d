@@ -77,6 +77,7 @@ class _Det3DDataPreprocessor(DetDataPreprocessor):
 
     def __init__(self,
                  voxel: bool = False,
+                 open_vocabulary: bool = False,
                  voxel_type: str = 'hard',
                  voxel_layer: OptConfigType = None,
                  mean: Sequence[Number] = None,
@@ -104,6 +105,7 @@ class _Det3DDataPreprocessor(DetDataPreprocessor):
             rgb_to_bgr=rgb_to_bgr,
             batch_augments=batch_augments)
         self.voxel = voxel
+        self.open_vocabulary = open_vocabulary
         self.voxel_type = voxel_type
         if voxel:
             self.voxel_layer = VoxelizationByGridShape(**voxel_layer)
@@ -196,6 +198,11 @@ class _Det3DDataPreprocessor(DetDataPreprocessor):
                 for batch_aug in self.batch_augments:
                     imgs, data_samples = batch_aug(imgs, data_samples)
             batch_inputs['imgs'] = imgs
+            
+        if self.open_vocabulary:
+            for k in inputs.keys():
+                if k not in batch_inputs.keys():
+                    batch_inputs[k] = inputs[k]
 
         return {'inputs': batch_inputs, 'data_samples': data_samples}
 
@@ -465,7 +472,7 @@ class _Det3DDataPreprocessor(DetDataPreprocessor):
             if hasattr(data_sample.gt_pts_seg, 'pts_instance_mask'):
                 pts_instance_mask = data_sample.gt_pts_seg.pts_instance_mask
                 pts_semantic_mask = data_sample.gt_pts_seg.pts_semantic_mask
-                total_unq = torch.unique(res_coors, dim=0)
+                total_unq,total_unique_indices_inverse = torch.unique(res_coors, return_inverse=True, dim=0)
                 if hasattr(data_sample.gt_pts_seg,'seenmask'):
                     seenmask = data_sample.gt_pts_seg.seenmask
                     pts_instance_mask = pts_instance_mask[seenmask]
@@ -480,10 +487,8 @@ class _Det3DDataPreprocessor(DetDataPreprocessor):
                 if hasattr(data_sample.gt_pts_seg,'seenmask'):
                     # find index
                     # encode
-                    total_unq_encoded = total_unq.mul(10 ** torch.arange(total_unq.shape[-1]).to(total_unq.device).view(1, -1)).sum(-1)
-                    unq_encoded = unq.mul(10 ** torch.arange(unq.shape[-1]).to(unq.device).view(1, -1)).sum(-1)
-
-                    # 使用torch.isin检查total_unq_encoded中的每个元素是否在unq_encoded中
+                    total_unq_encoded = total_unq.mul(1e3 ** torch.arange(total_unq.shape[-1]).to(total_unq.device).view(1, -1)).sum(-1)
+                    unq_encoded = unq.mul(1e3 ** torch.arange(unq.shape[-1]).to(unq.device).view(1, -1)).sum(-1)
                     grid_mask = torch.isin(total_unq_encoded.unsqueeze(-1), unq_encoded.unsqueeze(0))
                     data_sample.gt_pts_seg.grid_mask = grid_mask
                 unq_instance_labels = torch.unique(pts_instance_mask, dim=0)

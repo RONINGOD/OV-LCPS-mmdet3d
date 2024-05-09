@@ -67,6 +67,7 @@ def find_indices_torch(total_unq, unq):
 
     # 对每个元素进行编码
     total_unq_encoded = total_unq_flat.mul(10 ** torch.arange(total_unq_flat.shape[-1]).to(total_unq_flat.device).view(1, -1)).sum(-1)
+    print(total_unq_encoded)
     unq_encoded = unq_flat.mul(10 ** torch.arange(unq_flat.shape[-1]).to(unq_flat.device).view(1, -1)).sum(-1)
 
     # 使用torch.isin检查total_unq_encoded中的每个元素是否在unq_encoded中
@@ -78,8 +79,15 @@ def find_indices_torch(total_unq, unq):
     return mask
 
 # 示例用法
-total_unq = torch.tensor([[1313, 2313, 33131], [4, 5, 6], [7, 8, 9]])
+total_unq = torch.tensor([[471, 351, 13], [4, 5, 6], [7, 8, 9]])
 unq = torch.tensor([[4, 5, 6], [7, 8, 9]])
-
+unq_test =  torch.tensor([[4, 5, 6], [471, 351, 13], [10, 5, 6], [7, 8, 9],[4, 5, 6]])
+print(torch.unique(unq_test,sorted=True,dim=0,return_inverse=True,))
+print(torch.unique(unq_test,sorted=False,dim=0,return_inverse=True,))
 mask = find_indices_torch(total_unq, unq)
 print(mask)  # 输出: tensor([False,  True,  True])
+# from mmdet3d.registry import MODELS
+# print(MODELS.build(dict()))
+from mmcv.cnn import build_activation_layer, build_norm_layer
+norm_cfg = dict(type='BN1d', eps=1e-5, momentum=0.01)
+print(build_norm_layer(norm_cfg,768)[1])

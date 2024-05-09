@@ -83,11 +83,11 @@ class _NuScenesDataset(Seg3DDataset):
                  scene_idxs: Optional[Union[str, np.ndarray]] = None,
                  test_mode: bool = False,
                  **kwargs) -> None:
-
-        self.clip_feature_root = clip_feature_root
-        self.unseen_class = []
-        self.label_mapping_path = label_mapping_path
-        self.test_mode = test_mode
+        if modality['use_clip_feature']:
+            self.clip_feature_root = clip_feature_root
+            self.unseen_class = []
+            self.label_mapping_path = label_mapping_path
+            self.test_mode = test_mode
         super().__init__(
             data_root=data_root,
             ann_file=ann_file,

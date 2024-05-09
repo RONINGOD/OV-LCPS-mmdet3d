@@ -11,17 +11,6 @@ val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
 num_classes = 17
 model = dict(
-    voxel_encoder=dict(
-        feat_channels=[64, 128, 256, 256],
-        in_channels=6,
-        with_voxel_center=True,
-        feat_compression=16,
-        return_point_feats=False),
-    backbone=dict(
-        input_channels=16,
-        base_channels=32,
-        more_conv=True,
-        out_channels=256),
     decode_head=dict(
         num_decoder_layers=6,
         num_queries=128,
@@ -85,9 +74,11 @@ default_hooks = dict(checkpoint=dict(type='CheckpointHook', interval=5))
 custom_imports = dict(
     imports=[
         'p3former.backbones.cylinder3d',
+        'p3former.backbones.vision_clip',
         'p3former.data_preprocessors.data_preprocessor',
         'p3former.decode_heads.p3former_head',
-        'p3former.segmentors.p3former',
+        # 'p3former.decode_heads.p3former_head',
+        'p3former.segmentors.pfc',
         'p3former.task_modules.samplers.mask_pseduo_sampler',
         'evaluation.metrics.panoptic_seg_metric',
         'datasets.semantickitti_dataset',
