@@ -381,3 +381,51 @@ class _LaserMix(BaseTransform):
         repr_str += f'pre_transform={self.pre_transform}, '
         repr_str += f'prob={self.prob})'
         return repr_str
+
+@TRANSFORMS.register_module()
+class _BaseNovelClassMapping(BaseTransform):
+    """Map original semantic class to base / novel category ids.
+
+    Required Keys:
+
+    - seg_label_mapping (np.ndarray)
+    - pts_semantic_mask (np.ndarray)
+
+    Added Keys:
+
+    - points (np.float32)
+
+    Map valid classes as 0~len(valid_cat_ids)-1 and
+    others as len(valid_cat_ids).
+    """
+
+    def transform(self, results: dict) -> dict:
+        """Call function to map original semantic class to valid category ids.
+
+        Args:
+            results (dict): Result dict containing point semantic masks.
+
+        Returns:
+            dict: The result dict containing the mapped category ids.
+            Updated key and value are described below.
+
+                - pts_semantic_mask (np.ndarray): Mapped semantic masks.
+        """
+        assert 'pts_semantic_mask' in results
+        pts_semantic_mask = results['pts_semantic_mask']
+        assert 'unseen_class' in results
+        unseenmask = np.isin(pts_semantic_mask,results['unseen_class'])
+        seenmask = np.logical_not(unseenmask)
+        results['seenmask'] = seenmask
+        assert 'base_novel_mapping_inv' in results
+        label_mapping = results['base_novel_mapping_inv']
+        converted_pts_sem_mask = label_mapping[pts_semantic_mask]
+        # only train data
+        results['pts_semantic_mask'] = converted_pts_sem_mask 
+
+        return results
+
+    def __repr__(self) -> str:
+        """str: Return a string that describes the module."""
+        repr_str = self.__class__.__name__
+        return repr_str

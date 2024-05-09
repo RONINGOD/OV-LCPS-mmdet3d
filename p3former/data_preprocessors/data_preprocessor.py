@@ -465,11 +465,27 @@ class _Det3DDataPreprocessor(DetDataPreprocessor):
             if hasattr(data_sample.gt_pts_seg, 'pts_instance_mask'):
                 pts_instance_mask = data_sample.gt_pts_seg.pts_instance_mask
                 pts_semantic_mask = data_sample.gt_pts_seg.pts_semantic_mask
+                total_unq = torch.unique(res_coors, dim=0)
+                if hasattr(data_sample.gt_pts_seg,'seenmask'):
+                    seenmask = data_sample.gt_pts_seg.seenmask
+                    pts_instance_mask = pts_instance_mask[seenmask]
+                    pts_semantic_mask = pts_semantic_mask[seenmask]
+                    res_coors = res_coors[seenmask]
+                    # seenmask_indices = seenmask[:, 0].nonzero().squeeze()
+                    
                 num_points = res_coors.shape[0]
 
-                _, unique_indices_inverse = torch.unique(
+                unq, unique_indices_inverse = torch.unique(
                     res_coors, return_inverse=True, dim=0)
+                if hasattr(data_sample.gt_pts_seg,'seenmask'):
+                    # find index
+                    # encode
+                    total_unq_encoded = total_unq.mul(10 ** torch.arange(total_unq.shape[-1]).to(total_unq.device).view(1, -1)).sum(-1)
+                    unq_encoded = unq.mul(10 ** torch.arange(unq.shape[-1]).to(unq.device).view(1, -1)).sum(-1)
 
+                    # 使用torch.isin检查total_unq_encoded中的每个元素是否在unq_encoded中
+                    grid_mask = torch.isin(total_unq_encoded.unsqueeze(-1), unq_encoded.unsqueeze(0))
+                    data_sample.gt_pts_seg.grid_mask = grid_mask
                 unq_instance_labels = torch.unique(pts_instance_mask, dim=0)
                 sort_instance_labels = pts_instance_mask.new_zeros(pts_instance_mask.shape)
 

@@ -111,6 +111,7 @@ class _LoadAnnotations3D(LoadAnnotations):
                  with_seg: bool = False,
                  with_bbox_depth: bool = False,
                  with_panoptic_3d: bool = False,
+                 with_base_novel:bool = False,
                  poly2mask: bool = True,
                  seg_3d_dtype: str = 'np.int64',
                  seg_offset: int = None,
@@ -133,6 +134,7 @@ class _LoadAnnotations3D(LoadAnnotations):
         self.seg_3d_dtype = eval(seg_3d_dtype)
         self.seg_offset = seg_offset
         self.dataset_type = dataset_type
+        self.with_base_novel = with_base_novel
 
     def _load_bboxes_3d(self, results: dict) -> dict:
         """Private function to move the 3D bounding box annotation from
@@ -315,6 +317,42 @@ class _LoadAnnotations3D(LoadAnnotations):
             dict: The dict contains loaded label annotations.
         """
         results['gt_bboxes_labels'] = results['ann_info']['gt_bboxes_labels']
+        
+    def _load_panoptic_feature(self, results: dict) -> dict:
+        """Private function to load 3D panoptic segmentation annotations.
+
+        Args:
+            results (dict): Result dict from :obj:`mmdet3d.CustomDataset`.
+
+        Returns:
+            dict: The dict containing the panoptic segmentation annotations.
+        """
+        clip_feature_path = results['clip_feature_path']
+        if self.dataset_type=='semantickitti':
+            try:
+                mask_bytes = get(
+                    clip_feature_path, backend_args=self.backend_args)
+                # add .copy() to fix read-only bug
+                points_features = np.frombuffer(
+                    mask_bytes, dtype=self.seg_3d_dtype).copy()
+            except ConnectionError:
+                mmengine.check_file_exist(clip_feature_path)
+                points_features = np.load(clip_feature_path)
+        elif self.dataset_type == 'nuscenes':
+            mmengine.check_file_exist(clip_feature_path)
+            points_features = np.load(clip_feature_path)
+        clip_features, point_mask = points_features['point_feat'], points_features['point_mask']
+        clip_features = np.array(clip_features).astype('float32')
+        results['pts_clip_features'] = clip_features
+
+        # We can directly take panoptic labels as instance ids.
+        results['pts_clip_mask'] = point_mask
+
+        # 'eval_ann_info' will be passed to evaluator
+        if 'eval_ann_info' in results:
+            results['eval_ann_info']['pts_clip_features'] = clip_features
+            results['eval_ann_info']['pts_clip_mask'] = point_mask
+        return results
 
     def transform(self, results: dict) -> dict:
         """Function to load multiple types annotations.
@@ -341,6 +379,8 @@ class _LoadAnnotations3D(LoadAnnotations):
             results = self._load_masks_3d(results)
         if self.with_seg_3d:
             results = self._load_semantic_seg_3d(results)
+        if self.with_base_novel:
+            results = self._load_panoptic_feature(results)
         return results
 
     def __repr__(self) -> str:

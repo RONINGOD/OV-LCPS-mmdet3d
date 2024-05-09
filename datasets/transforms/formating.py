@@ -47,7 +47,9 @@ def to_tensor(
 
 @TRANSFORMS.register_module()
 class _Pack3DDetInputs(BaseTransform):
-    INPUTS_KEYS = ['points', 'img']
+    INPUTS_KEYS = ['points', 'img',
+                'pts_clip_features','pts_clip_mask','categroy_overlapping_mask','base_novel_mapping',
+                'base_novel_mapping_inv','thing_class','stuff_class','total_class']
     INSTANCEDATA_3D_KEYS = [
         'gt_bboxes_3d', 'gt_labels_3d', 'attr_labels', 'depths', 'centers_2d'
     ]
@@ -58,7 +60,7 @@ class _Pack3DDetInputs(BaseTransform):
 
     SEG_KEYS = [
         'gt_seg_map', 'pts_instance_mask', 'pts_semantic_mask',
-        'gt_semantic_seg'
+        'gt_semantic_seg','seenmask',
     ]
 
     def __init__(
@@ -172,7 +174,9 @@ class _Pack3DDetInputs(BaseTransform):
         for key in [
                 'proposals', 'gt_bboxes', 'gt_bboxes_ignore', 'gt_labels',
                 'gt_bboxes_labels', 'attr_labels', 'pts_instance_mask',
-                'pts_semantic_mask', 'centers_2d', 'depths', 'gt_labels_3d'
+                'pts_semantic_mask', 'centers_2d', 'depths', 'gt_labels_3d','seenmask',
+                'pts_clip_features','pts_clip_mask','categroy_overlapping_mask','base_novel_mapping',
+                'base_novel_mapping_inv','thing_class','stuff_class','total_class'
         ]:
             if key not in results:
                 continue

@@ -5,11 +5,12 @@
 dataset_type = '_NuScenesDataset'
 data_root = '/home/coisini/data/nuscenes'
 ann_root = '/home/coisini/data/nuscenes/nus_pkl'
+clip_feature_root = '/home/coisini/data/nuscenes_openseg_features'
 version_root = 'v1.0-mini' # v1.0-trainval
 class_names = ['noise', 'barrier', 'bicycle', 'bus', 'car', 'construction_vehicle', 'motorcycle',
 'pedestrian', 'traffic_cone', 'trailer', 'truck', 'driveable_surface', 'other_flat', 'sidewalk',
 'terrain', 'manmade', 'vegetation']
-# label_mapping = "configs/_base_/datasets/nuscenes.yaml"
+label_mapping_path = "configs/_base_/datasets/nuscenes.yaml"
 
 learning_mapping={
   1: 0,
@@ -49,7 +50,7 @@ learning_mapping={
 metainfo = dict(
     classes=class_names, seg_label_mapping=learning_mapping, max_label=31)
 
-input_modality = dict(use_lidar=True, use_camera=False)
+input_modality = dict(use_lidar=True, use_camera=False,use_clip_feature=True)
 
 data_prefix = dict(
             pts='samples/LIDAR_TOP',
@@ -102,76 +103,16 @@ train_pipeline = [
         with_bbox_3d=False,
         with_label_3d=False,
         with_panoptic_3d=True,
+        with_base_novel=True,
         seg_3d_dtype='np.int32',
         seg_offset=1000,
         dataset_type='nuscenes',
         backend_args=backend_args),
     dict(type='PointSegClassMapping', ),
-    # dict(),
-    # dict(
-    #     type='RandomChoice',
-    #     transforms=[
-    #         [
-    #             dict(
-    #                 type='_LaserMix',
-    #                 num_areas=[3, 4, 5, 6],
-    #                 pitch_angles=[-25, 3],
-    #                 pre_transform=[
-    #                     dict(
-    #                         type='LoadPointsFromFile',
-    #                         coord_type='LIDAR',
-    #                         load_dim=5,
-    #                         use_dim=4),
-    #                     dict(
-    #                         type='_LoadAnnotations3D',
-    #                         with_bbox_3d=False,
-    #                         with_label_3d=False,
-    #                         with_panoptic_3d=True,
-    #                         seg_3d_dtype='np.int32',
-    #                         seg_offset=1000,
-    #                         dataset_type='nuscenes'),
-    #                     dict(type='PointSegClassMapping')
-    #                 ],
-    #                 prob=0.5)
-    #         ],
-    #         [
-    #             dict(
-    #                 type='_PolarMix',
-    #                 instance_classes=[1, 2, 3, 4, 5, 6, 7,8,9,10],
-    #                 swap_ratio=0.5,
-    #                 rotate_paste_ratio=1.0,
-    #                 pre_transform=[
-    #                     dict(
-    #                         type='LoadPointsFromFile',
-    #                         coord_type='LIDAR',
-    #                         load_dim=5,
-    #                         use_dim=4),
-    #                     dict(
-    #                         type='_LoadAnnotations3D',
-    #                         with_bbox_3d=False,
-    #                         with_label_3d=False,
-    #                         with_panoptic_3d=True,  
-    #                         seg_3d_dtype='np.int32',
-    #                         seg_offset=1000,
-    #                         dataset_type='nuscenes'),
-    #                     dict(type='PointSegClassMapping')
-    #                 ],
-    #                 prob=0.5)
-    #         ],
-    #     ],
-    #     prob=[0.2, 0.8]),
-    # dict(
-    #     type='RandomFlip3D',
-    #     sync_2d=False,
-    #     flip_ratio_bev_horizontal=0.5,
-    #     flip_ratio_bev_vertical=0.5),
-    # dict(
-    #     type='GlobalRotScaleTrans',
-    #     rot_range=[-0.78539816, 0.78539816],
-    #     scale_ratio_range=[0.95, 1.05],
-    #     translation_std=[0.1, 0.1, 0.1],
-    # ),
-    dict(type='Pack3DDetInputs', keys=['points', 'pts_semantic_mask', 'pts_instance_mask'])
+    dict(type='_BaseNovelClassMapping',),
+
+    dict(type='_Pack3DDetInputs', keys=['points', 'pts_semantic_mask', 'pts_instance_mask','seenmask',                'pts_clip_features','pts_clip_mask','categroy_overlapping_mask','base_novel_mapping',
+                'base_novel_mapping_inv','thing_class','stuff_class','total_class'])
 ]
 
 test_pipeline = [
@@ -191,7 +132,9 @@ test_pipeline = [
         dataset_type='nuscenes',
         backend_args=backend_args),
     dict(type='PointSegClassMapping', ),
-    dict(type='Pack3DDetInputs', keys=['points', 'pts_semantic_mask', 'pts_instance_mask'])
+    dict(type='_BaseNovelClassMapping',),
+    dict(type='_Pack3DDetInputs', keys=['points', 'pts_semantic_mask', 'pts_instance_mask','seenmask',                'pts_clip_features','pts_clip_mask','categroy_overlapping_mask','base_novel_mapping',
+                'base_novel_mapping_inv','thing_class','stuff_class','total_class'])
 ]
 
 
@@ -211,6 +154,8 @@ train_dataloader = dict(
             metainfo=metainfo,
             modality=input_modality,
             ignore_index=0,
+            clip_feature_root = clip_feature_root,
+            label_mapping_path = label_mapping_path,
             backend_args=backend_args)),
 )
 
@@ -231,6 +176,8 @@ test_dataloader = dict(
             modality=input_modality,
             ignore_index=0,
             test_mode=True,
+            clip_feature_root = clip_feature_root,
+            label_mapping_path = label_mapping_path,
             backend_args=backend_args)),
 )
 
