@@ -134,7 +134,6 @@ test_pipeline = [
         dataset_type='nuscenes',
         backend_args=backend_args),
     dict(type='PointSegClassMapping', ),
-    # dict(type='_BaseNovelClassMapping',),
     dict(type='_Pack3DDetInputs', keys=['points', 'pts_semantic_mask', 'pts_instance_mask','seenmask',
                 'pts_clip_features','pts_clip_mask','pts_clip_features','pts_clip_mask','category_overlapping_mask',
                 'base_novel_mapping','base_novel_mapping_inv','thing_class','stuff_class','text_features'])

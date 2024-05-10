@@ -348,10 +348,6 @@ class _LoadAnnotations3D(LoadAnnotations):
         # We can directly take panoptic labels as instance ids.
         results['pts_clip_mask'] = point_mask
 
-        # 'eval_ann_info' will be passed to evaluator
-        if 'eval_ann_info' in results:
-            results['eval_ann_info']['pts_clip_features'] = clip_features
-            results['eval_ann_info']['pts_clip_mask'] = point_mask
         return results
 
     def transform(self, results: dict) -> dict:
