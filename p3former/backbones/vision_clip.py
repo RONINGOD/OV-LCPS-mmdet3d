@@ -49,18 +49,15 @@ class _VisionClip(BaseModule):
         clip_features = batch_inputs['pts_clip_features'] # [34752, 768]
         point_mask = batch_inputs['pts_clip_mask']
         coors = batch_inputs['voxels']['coors']
+        points = batch_inputs['points']
         B = len(clip_features)
         voxels = []
-        coors = []
         for batch in range(B):
-            point_voxel_fea = clip_features[batch].new_ones([coors[batch].shape[0],self.clip_vision_dim])*1e-8
-            voxel_ind = coors[batch]
+            point_voxel_fea = clip_features[batch].new_ones([points[batch].shape[0],self.clip_vision_dim])*1e-8
             point_voxel_fea[point_mask[batch]] = clip_features[batch]
-            coors.append(F.pad(voxel_ind, (1, 0), mode='constant', value=batch))
             voxels.append(point_voxel_fea)
             
         voxels = torch.cat(voxels,dim=0)
-        coors = torch.cat(coors,dim=0)
         
         voxel_feats, voxel_coors = self.vfe_scatter(voxels, coors)
         voxel_feats = self.pre_norm(voxel_feats)

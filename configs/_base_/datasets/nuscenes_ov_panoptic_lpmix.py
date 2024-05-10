@@ -111,8 +111,9 @@ train_pipeline = [
     dict(type='PointSegClassMapping', ),
     dict(type='_BaseNovelClassMapping',),
 
-    dict(type='_Pack3DDetInputs', keys=['points', 'pts_semantic_mask', 'pts_instance_mask','seenmask','pts_clip_features','pts_clip_mask'                'pts_clip_features','pts_clip_mask','categroy_overlapping_mask','base_novel_mapping',
-                'base_novel_mapping_inv','thing_class','stuff_class','total_class'])
+    dict(type='_Pack3DDetInputs', keys=['points', 'pts_semantic_mask', 'pts_instance_mask','seenmask',
+                'pts_clip_features','pts_clip_mask','pts_clip_features','pts_clip_mask','category_overlapping_mask',
+                'base_novel_mapping','base_novel_mapping_inv','thing_class','stuff_class','text_features'])
 ]
 
 test_pipeline = [
@@ -127,14 +128,16 @@ test_pipeline = [
         with_bbox_3d=False,
         with_label_3d=False,
         with_panoptic_3d=True,
+        with_base_novel=True,
         seg_3d_dtype='np.int32',
         seg_offset=1000,
         dataset_type='nuscenes',
         backend_args=backend_args),
     dict(type='PointSegClassMapping', ),
-    dict(type='_BaseNovelClassMapping',),
-    dict(type='_Pack3DDetInputs', keys=['points', 'pts_semantic_mask', 'pts_instance_mask','seenmask',                'pts_clip_features','pts_clip_mask','categroy_overlapping_mask','base_novel_mapping',
-                'base_novel_mapping_inv','thing_class','stuff_class','total_class'])
+    # dict(type='_BaseNovelClassMapping',),
+    dict(type='_Pack3DDetInputs', keys=['points', 'pts_semantic_mask', 'pts_instance_mask','seenmask',
+                'pts_clip_features','pts_clip_mask','pts_clip_features','pts_clip_mask','category_overlapping_mask',
+                'base_novel_mapping','base_novel_mapping_inv','thing_class','stuff_class','text_features'])
 ]
 
 

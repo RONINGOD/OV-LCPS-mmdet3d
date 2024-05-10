@@ -9,13 +9,17 @@ _base_ = [
 train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=40, val_interval=1)
 val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
-num_classes = 17
+num_classes = 13
 model = dict(
     decode_head=dict(
+        use_lable_weight = True,
+        cal_sem_loss = True,
         num_decoder_layers=6,
+        num_classes = num_classes,
+        vision_clip_dim = 768,
         num_queries=128,
         embed_dims=256,
-        cls_channels=(256, 256, num_classes),
+        cls_channels=(256, 256, 768),
         mask_channels=(256, 256, 256, 256, 256),
         thing_class=[1,2,3,4,5,6,7,8,9,10],
         stuff_class=[11,12,13,14,15,16],
@@ -77,7 +81,7 @@ custom_imports = dict(
         'p3former.backbones.vision_clip',
         'p3former.data_preprocessors.data_preprocessor',
         'p3former.decode_heads.p3former_head',
-        # 'p3former.decode_heads.p3former_head',
+        'p3former.decode_heads.pfc_head',
         'p3former.segmentors.pfc',
         'p3former.task_modules.samplers.mask_pseduo_sampler',
         'evaluation.metrics.panoptic_seg_metric',

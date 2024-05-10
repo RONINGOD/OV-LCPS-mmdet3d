@@ -39,13 +39,13 @@ class _PFC(EncoderDecoder3D):
     def extract_feat(self, batch_inputs: dict,batch_data_samples:dict) -> Tensor:
         """Extract features from points."""
         x = self.backbone(batch_inputs,batch_data_samples)
-        encoded_feats = self.voxel_encoder(batch_inputs['voxels']['voxels'],
-                                           batch_inputs['voxels']['coors'])
-        batch_inputs['voxels']['voxel_coors'] = encoded_feats[1]
+        # encoded_feats = self.voxel_encoder(batch_inputs['voxels']['voxels'],
+        #                                    batch_inputs['voxels']['coors'])
+        batch_inputs['voxels']['voxel_coors'] = x[1]
 
         if self.with_neck:
             x = self.neck(x)
-        return x
+        return x[0]
 
     def loss(self, batch_inputs_dict: dict,
              batch_data_samples: SampleList) -> Dict[str, Tensor]:
@@ -69,7 +69,7 @@ class _PFC(EncoderDecoder3D):
         x = self.extract_feat(batch_inputs_dict,batch_data_samples)
         batch_inputs_dict['features'] = x
         losses = dict()
-        loss_decode = self._decode_head_forward_train(x, batch_data_samples)
+        loss_decode = self._decode_head_forward_train(batch_inputs_dict, batch_data_samples)
         losses.update(loss_decode)
 
         return losses
@@ -77,7 +77,7 @@ class _PFC(EncoderDecoder3D):
     def predict(self, 
                 batch_inputs_dict: dict,
                 batch_data_samples: SampleList) -> SampleList:
-        x = self.extract_feat(batch_inputs_dict)
+        x = self.extract_feat(batch_inputs_dict,batch_data_samples)
         batch_inputs_dict['features'] = x
         pts_semantic_preds, pts_instance_preds = self.decode_head.predict(batch_inputs_dict, batch_data_samples)
         return self.postprocess_result(pts_semantic_preds, pts_instance_preds, batch_data_samples)

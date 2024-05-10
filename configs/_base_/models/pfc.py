@@ -1,5 +1,5 @@
 grid_shape = [480, 360, 32]
-num_classes = 17
+num_classes = 13
 norm_cfg = dict(type='BN1d', eps=1e-5, momentum=0.01)
 model = dict(
     type='_PFC',
@@ -34,7 +34,7 @@ model = dict(
         clip_vision_dim = 768,
         ),
     decode_head=dict(
-        type='_P3FormerHead',
+        type='_PFCHead',
         num_classes=num_classes,
         num_queries=128,
         embed_dims=128,

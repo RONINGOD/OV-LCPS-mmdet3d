@@ -487,10 +487,12 @@ class _Det3DDataPreprocessor(DetDataPreprocessor):
                 if hasattr(data_sample.gt_pts_seg,'seenmask'):
                     # find index
                     # encode
-                    total_unq_encoded = total_unq.mul(1e3 ** torch.arange(total_unq.shape[-1]).to(total_unq.device).view(1, -1)).sum(-1)
-                    unq_encoded = unq.mul(1e3 ** torch.arange(unq.shape[-1]).to(unq.device).view(1, -1)).sum(-1)
-                    grid_mask = torch.isin(total_unq_encoded.unsqueeze(-1), unq_encoded.unsqueeze(0))
-                    data_sample.gt_pts_seg.grid_mask = grid_mask
+                    structured_total_unq = np.core.records.fromarrays(total_unq.T.cpu().numpy())
+                    structured_unq = np.core.records.fromarrays(unq.T.cpu().numpy())
+                    bool_array = np.where(np.in1d(structured_total_unq, structured_unq))[0]
+                    grid_mask = np.zeros(len(total_unq), dtype=bool)
+                    grid_mask[bool_array] = True
+                    data_sample.gt_pts_seg.grid_mask = torch.from_numpy(grid_mask).to(res_coors.device)
                 unq_instance_labels = torch.unique(pts_instance_mask, dim=0)
                 sort_instance_labels = pts_instance_mask.new_zeros(pts_instance_mask.shape)
 

@@ -124,7 +124,7 @@ class _NuScenesDataset(Seg3DDataset):
         self.thing_class = np.sort(np.vectorize(base_novel_label_mapping_inv.__getitem__)(self.thing_list))
         self.stuff_class = np.sort(np.vectorize(base_novel_label_mapping_inv.__getitem__)(self.stuff_list))
         self.total_class = np.sort(np.vectorize(base_novel_label_mapping_inv.__getitem__)(np.hstack([0,self.base_thing_list+self.base_stuff_list])))
-        self.categroy_overlapping_mask = np.hstack((np.full(1,True,dtype=bool),np.full(len(self.base_thing_list+self.base_stuff_list), True, dtype=bool),np.full(len(self.novel_thing_list+self.novel_stuff_list),False,dtype=bool)))
+        self.category_overlapping_mask = np.hstack((np.full(1,True,dtype=bool),np.full(len(self.base_thing_list+self.base_stuff_list), True, dtype=bool),np.full(len(self.novel_thing_list+self.novel_stuff_list),False,dtype=bool)))
         seg_base_novel_label_mapping = np.zeros(len(base_novel_label_mapping.keys()), dtype=np.int64)
         seg_base_novel_label_mapping_inv = np.zeros(len(base_novel_label_mapping_inv.keys()), dtype=np.int64)
 
@@ -178,10 +178,11 @@ class _NuScenesDataset(Seg3DDataset):
             info['thing_class'] = self.thing_class
             info['stuff_class'] = self.stuff_class
             info['total_class'] = self.total_class
-            info['categroy_overlapping_mask'] = self.categroy_overlapping_mask
+            info['category_overlapping_mask'] = self.category_overlapping_mask
             info['base_novel_mapping'] = self.base_novel_mapping
             info['base_novel_mapping_inv'] = self.base_novel_mapping_inv
             info['unseen_class'] = self.unseen_class
+            info['text_features'] = self.text_features
 
         if 'pts_instance_mask_path' in info:
             info['pts_instance_mask_path'] = \
