@@ -90,6 +90,7 @@ class _Det3DDataPreprocessor(DetDataPreprocessor):
                  seg_pad_value: int = 255,
                  bgr_to_rgb: bool = False,
                  rgb_to_bgr: bool = False,
+                 ignore_index: int = 0,
                  boxtype2tensor: bool = True,
                  batch_augments: Optional[List[dict]] = None) -> None:
         super(_Det3DDataPreprocessor, self).__init__(
@@ -106,6 +107,7 @@ class _Det3DDataPreprocessor(DetDataPreprocessor):
             batch_augments=batch_augments)
         self.voxel = voxel
         self.open_vocabulary = open_vocabulary
+        self.ignore_index = ignore_index
         self.voxel_type = voxel_type
         if voxel:
             self.voxel_layer = VoxelizationByGridShape(**voxel_layer)
@@ -474,10 +476,9 @@ class _Det3DDataPreprocessor(DetDataPreprocessor):
                 pts_semantic_mask = data_sample.gt_pts_seg.pts_semantic_mask
                 total_unq,total_unique_indices_inverse = torch.unique(res_coors, return_inverse=True, dim=0)
                 if hasattr(data_sample.gt_pts_seg,'seenmask'):
-                    seenmask = data_sample.gt_pts_seg.seenmask
-                    pts_instance_mask = pts_instance_mask[seenmask]
-                    pts_semantic_mask = pts_semantic_mask[seenmask]
-                    res_coors = res_coors[seenmask]
+                    unseen_mask = ~data_sample.gt_pts_seg.seenmask
+                    pts_instance_mask[unseen_mask] = self.ignore_index
+                    pts_semantic_mask[unseen_mask] = self.ignore_index
                     # seenmask_indices = seenmask[:, 0].nonzero().squeeze()
                     
                 num_points = res_coors.shape[0]

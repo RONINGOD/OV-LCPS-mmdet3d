@@ -61,12 +61,12 @@ model = dict(
             reduction='mean',
             loss_weight=1.0),
         loss_dice=dict(type='mmdet.DiceLoss', loss_weight=2.0),
-        loss_cls=dict(
-            type='mmdet.FocalLoss',
-            use_sigmoid=True,
-            gamma=4.0,
-            alpha=0.25,
-            loss_weight=1.0),
+        # loss_cls=dict(
+        #     type='mmdet.FocalLoss',
+        #     use_sigmoid=True,
+        #     gamma=4.0,
+        #     alpha=0.25,
+        #     loss_weight=1.0),
     ),
     train_cfg=None,
     test_cfg=dict(mode='whole'),

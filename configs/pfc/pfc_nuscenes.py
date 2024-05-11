@@ -6,14 +6,20 @@ _base_ = [
 # optimizer
 # This schedule is mainly used by models on nuScenes dataset
 
-train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=40, val_interval=1)
+max_epochs = 40
+
+train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=max_epochs, val_interval=1)
 val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
 num_classes = 13
 model = dict(
     decode_head=dict(
-        use_lable_weight = True,
+        use_lable_weight = False,
         cal_sem_loss = True,
+        use_pa_seg_loss = True,
+        use_dice_loss=True,
+        use_sem_loss=True,
+        panoptic_use_sigmoid = False,
         num_decoder_layers=6,
         num_classes = num_classes,
         vision_clip_dim = 768,
@@ -23,7 +29,19 @@ model = dict(
         mask_channels=(256, 256, 256, 256, 256),
         thing_class=[1,2,3,4,5,6,7,8,9,10],
         stuff_class=[11,12,13,14,15,16],
-        ignore_index=0
+        ignore_index=0,
+        loss_cls=dict(
+            type= 'mmdet.CrossEntropyLoss',
+            use_sigmoid= True,
+            ignore_index=0,
+            reduction='mean',
+            loss_weight= 1.0),
+        # loss_cls=dict(
+        #     type='mmdet.FocalLoss',
+        #     use_sigmoid=True,
+        #     gamma=4.0,
+        #     alpha=0.25,
+        #     loss_weight=1.0),
     ))
 
 
@@ -33,7 +51,7 @@ optim_wrapper = dict(
     optimizer=dict(type='AdamW', lr=lr, weight_decay=0.01))
 
 
-train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=36, val_interval=1)
+train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=max_epochs, val_interval=1)
 val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
 
@@ -41,14 +59,15 @@ param_scheduler = [
     dict(
         type='MultiStepLR',
         begin=0,
-        end=36,
+        end=max_epochs,
         by_epoch=True,
         milestones=[24, 32],
         gamma=0.2)
 ]
 
-train_dataloader = dict(batch_size=1, )
-
+train_dataloader = dict(batch_size=2,num_workers=8, )
+val_dataloader = dict(batch_size=2,num_workers=8, )
+test_dataloader = dict(batch_size=1,num_workers=8, )
 # test_pipeline = [
 #     dict(
 #         type='LoadPointsFromFile',
@@ -92,3 +111,4 @@ custom_imports = dict(
         'datasets.transforms.formating',
     ],
     allow_failed_imports=False)
+# python -m torch.distributed.launch --node_rank=0 --nproc_per_node=2 --master_port=29503 ./train.py configs/pfc/pfc_nuscenes.py --launcher pytorch

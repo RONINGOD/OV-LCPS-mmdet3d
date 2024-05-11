@@ -23,30 +23,25 @@ def get_classification_logits(x, text_classifier, logit_scale):
 
 # Ref: https://github.com/NVlabs/ODISE/blob/e97b06c424c575fec9fc5368dd4b3e050d91abc4/odise/modeling/meta_arch/odise.py#L923
 class MaskPooling(nn.Module):
-    def __init__(
-        self,
-    ):
+    def __init__(self):
         super().__init__()
 
     def forward(self, x, mask):
         """
         Args:
-            x: [B, C, H, W]
-            mask: [B, Q, H, W]
+            x: [b, V, C]
+            mask: [b, N, V]
         """
-        if not x.shape[-2:] == mask.shape[-2:]:
+        if not x.shape[-2] == mask.shape[-1]:
             # reshape mask to x
-            mask = F.interpolate(mask, size=x.shape[-2:], mode='bilinear', align_corners=False)
+            mask = F.interpolate(mask, size=[mask.shape[-2],x.shape[-2]], mode='bilinear', align_corners=False)
+
         with torch.no_grad():
             mask = mask.detach()
             mask = (mask > 0).to(mask.dtype)
-            denorm = mask.sum(dim=(-1, -2), keepdim=True) + 1e-8
+            denorm = mask.sum(dim=-1, keepdim=True) + 1e-8
 
-        mask_pooled_x = torch.einsum(
-            "bchw,bqhw->bqc",
-            x,
-            mask / denorm,
-        )
+        mask_pooled_x = torch.einsum("bvc,bnv->bnc", x, mask / denorm)
         return mask_pooled_x
 
 class MLP(nn.Module):
@@ -90,7 +85,10 @@ class _PFCHead(nn.Module):
                  loss_cls=None,
                  loss_mask=None,
                  loss_dice=None,
+                 use_pa_seg_loss=True,
+                 use_dice_loss=True,
                  use_sem_loss=True,
+                 panoptic_use_sigmoid = True,
                  use_lable_weight = True,
                  cal_sem_loss = True,
                  assigner_zero_layer_cfg=None,
@@ -128,6 +126,9 @@ class _PFCHead(nn.Module):
         self.vision_clip_dim = vision_clip_dim
         self.geometric_ensemble_alpha = geometric_ensemble_alpha
         self.geometric_ensemble_beta = geometric_ensemble_beta
+        self.use_pa_seg_loss = use_pa_seg_loss
+        self.use_dice_loss = use_dice_loss
+        self.panoptic_use_sigmoid = panoptic_use_sigmoid
         self.logit_scale = nn.Parameter(torch.ones([]) * init_logit_scale)
         self.mask_pooling = MaskPooling()
         self.mask_features = nn.Conv1d(in_channels=vision_clip_dim, out_channels=vision_clip_dim, kernel_size=1, stride=1, padding=0)
@@ -225,16 +226,16 @@ class _PFCHead(nn.Module):
 
         sem_preds = []
         if self.use_sem_loss:
-            sem_queries = self.sem_queries.weight.clone().squeeze(-1).squeeze(-1).repeat(1,1,batch_size).permute(2,0,1) # [20,256,1,1,1] -> [1,20,256]
+            sem_queries = self.sem_queries.weight.clone().squeeze(-1).squeeze(-1).repeat(1,1,batch_size).permute(2,0,1) # [768,256,1,1,1] -> [1,768,256]
             for b in range(len(pe_features)):
-                # sem_pred = torch.einsum("nc,vc->vn", sem_queries[b], pe_features[b]) # [n,c]*[v,c] -> [v,n] [37660,20]
+                # sem_pred = torch.einsum("nc,vc->vn", sem_queries[b], pe_features[b]) # [n,c]*[v,c] -> [v,n] [37660,17]
                 sem_que = torch.einsum("nc,vn->vc", sem_queries[b], text_features) # [768,256]*[13,768] -> [v,n] [13,256]
                 sem_fea = torch.einsum("nc,vc->vn",sem_queries[b],pe_features[b]) # [768,256] [V,256]-> [v,768]
                 sem_pred = get_classification_logits(sem_fea,text_features,self.logit_scale)
                 sem_preds.append(sem_pred)
                 # stuff_queries = sem_queries[b][self.stuff_class] # [11,256]
-                stuff_queries = sem_que[self.stuff_class] # [5,256]
-                queries[b] = torch.cat([queries[b], stuff_queries], dim=0) # [139,256]
+                stuff_queries = sem_que[self.stuff_class] # [6,256]
+                queries[b] = torch.cat([queries[b], stuff_queries], dim=0) # [134,256]
 
         return queries, pe_features, mpe, sem_preds
 
@@ -491,22 +492,23 @@ class _PFCHead(nn.Module):
 
         loss_dice = 0
         valid_bs = 0
-        for mask_idx, (mpred, mtarget) in enumerate(
-                zip(mask_preds, mask_targets)):
-            mp = mpred[bool_pos_inds_split[mask_idx]]
-            mt = mtarget[bool_pos_inds_split[mask_idx]]
-            grid_mask = batch_data_samples[mask_idx].gt_pts_seg.grid_mask
-            mp = mp.permute(1,0)[grid_mask].permute(1,0)
-            if len(mp) > 0:
-                valid_bs += 1
-                loss_dice += self.loss_dice(mp, mt) # [54, 46838] [54, 46838]
+        if self.use_dice_loss:
+            for mask_idx, (mpred, mtarget) in enumerate(
+                    zip(mask_preds, mask_targets)):
+                mp = mpred[bool_pos_inds_split[mask_idx]]
+                mt = mtarget[bool_pos_inds_split[mask_idx]]
+                grid_mask = batch_data_samples[mask_idx].gt_pts_seg.grid_mask
+                mp = mp.permute(1,0)[grid_mask].permute(1,0)
+                if len(mp) > 0:
+                    valid_bs += 1
+                    loss_dice += self.loss_dice(mp, mt) # [54, 46838] [54, 46838]
 
-        if valid_bs > 0:
-            losses[f'loss_dice_{layer}'] = loss_dice / valid_bs
-        else:
-            losses[f'loss_dice_{layer}'] = class_preds.sum() * 0.0
+            if valid_bs > 0:
+                losses[f'loss_dice_{layer}'] = loss_dice / valid_bs
+            else:
+                losses[f'loss_dice_{layer}'] = class_preds.sum() * 0.0
 
-        if self.use_pa_seg:
+        if self.use_pa_seg and self.use_pa_seg_loss:
             loss_dice_pos = 0
             valid_bs = 0
             for mask_idx, (mpred, mtarget) in enumerate(
@@ -645,10 +647,9 @@ class _PFCHead(nn.Module):
         class_results_buffer = []
         
         for b in range(batch_size):
-            clip_feature = batch_inputs['features'][voxel_coors[:, 0] == b]
-            clip_feature = clip_feature.transpose(0,1).unsqueeze(0).unsqueeze(3)
+            clip_feature = batch_inputs['features'][voxel_coors[:, 0] == b].unsqueeze(0)
             mask_cls = mask_cls_results[b]
-            mask_for_pooling = mask_pred_results[b].unsqueeze(0).unsqueeze(3)
+            mask_for_pooling = mask_pred_results[b].unsqueeze(0)
             pooled_clip_feature = self.mask_pooling(clip_feature, mask_for_pooling).squeeze(0)
             in_vocabulary_class_preds = get_classification_logits(mask_cls, text_features, self.logit_scale) # [134, 17]
             out_vocabulary_class_preds = get_classification_logits(pooled_clip_feature,text_features,self.logit_scale)
@@ -656,11 +657,11 @@ class _PFCHead(nn.Module):
             in_vocabulary_class_preds = in_vocabulary_class_preds.softmax(-1)
             out_vocabulary_class_preds = out_vocabulary_class_preds.softmax(-1)
             cls_logits_seen = (
-                (in_vocabulary_class_preds ** (1 - alpha) * out_vocabulary_class_preds**alpha).log()
+                (in_vocabulary_class_preds ** (1 - alpha) * out_vocabulary_class_preds**alpha)
                 * category_overlapping_mask
             )
             cls_logits_unseen = (
-                (in_vocabulary_class_preds ** (1 - beta) * out_vocabulary_class_preds**beta).log()
+                (in_vocabulary_class_preds ** (1 - beta) * out_vocabulary_class_preds**beta)
                 * (~ category_overlapping_mask)
             ) 
             cls_results = cls_logits_seen + cls_logits_unseen
@@ -777,13 +778,17 @@ class _PFCHead(nn.Module):
             mask_pred = mask_preds[i]
 
             scores = class_pred[:self.num_queries][:, self.thing_class]
-            thing_scores, thing_labels = scores.sigmoid().max(dim=1)
+            if self.panoptic_use_sigmoid:
+                thing_scores, thing_labels = scores.sigmoid().max(dim=1)
+            else:
+                thing_scores, thing_labels = scores.max(dim=1)
             thing_scores *= 2
             thing_labels += self.thing_class[0]
-            stuff_scores = class_pred[
-                self.num_queries:][:, self.stuff_class].diag().sigmoid()
-            stuff_labels = torch.tensor(self.stuff_class)
-            stuff_labels = stuff_labels.to(thing_labels.device)
+            if self.panoptic_use_sigmoid:
+                stuff_scores = class_pred[self.num_queries:][:, self.stuff_class].diag().sigmoid()
+            else:
+                stuff_scores = class_pred[self.num_queries:][:, self.stuff_class].diag()
+            stuff_labels = self.stuff_class
 
 
             scores = torch.cat([thing_scores, stuff_scores], dim=0)
