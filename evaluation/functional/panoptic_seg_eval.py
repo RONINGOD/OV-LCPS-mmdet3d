@@ -206,7 +206,7 @@ class EvalPanoptic:
                         k.ljust(20), v['miou']*100, v['pq']*100, v['rq']*100, v['sq']*100),
                     self.logger)
             for k,v in result_dicts.items():
-                print_log('{k}:\t{:.6f}%'.format(v*100),self.logger)
+                print_log('{}:\t{:.6f}%'.format(k,v*100),self.logger)
             print_log('True Positive: ', self.logger)
             print_log('\t|\t'.join([str(x) for x in self.pan_tp]), self.logger)
             print_log('False Positive: ')
