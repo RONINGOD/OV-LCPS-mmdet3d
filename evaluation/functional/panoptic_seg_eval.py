@@ -33,6 +33,8 @@ class EvalPanoptic:
                  classes: List[str],
                  thing_classes: List[str],
                  stuff_classes: List[str],
+                 thing_novel_classes: List[str],
+                 stuff_novel_classes: List[str],
                  include: List[int],
                  dataset_type: str,
                  min_num_points: int,
@@ -43,6 +45,8 @@ class EvalPanoptic:
         self.classes = classes
         self.thing_classes = thing_classes
         self.stuff_classes = stuff_classes
+        self.thing_novel_classes = thing_novel_classes
+        self.stuff_novel_classes = stuff_novel_classes
         self.include = include # [0,1,2,...,18]
         self.dataset_type = dataset_type
         self.ignore_index = ignore_index
@@ -164,6 +168,15 @@ class EvalPanoptic:
         sq_stuff = np.mean(
             [float(output_dict[c]['sq']) for c in self.stuff_classes])
 
+        pq_novel_stuff = np.mean([float(output_dict[c]['pq']) for c in self.stuff_novel_classes])
+        rq_novel_stuff = np.mean([float(output_dict[c]['rq']) for c in self.stuff_novel_classes])
+        sq_novel_stuff = np.mean([float(output_dict[c]['sq']) for c in self.stuff_novel_classes])
+        
+        pq_novel_things = np.mean([float(output_dict[c]['pq']) for c in self.thing_novel_classes])
+        rq_novel_things = np.mean([float(output_dict[c]['rq']) for c in self.thing_novel_classes])
+        sq_novel_things = np.mean([float(output_dict[c]['sq']) for c in self.thing_novel_classes])
+        
+        
         result_dicts = {}
         result_dicts['pq'] = float(pq)
         result_dicts['pq_dagger'] = float(pq_dagger)
@@ -176,18 +189,24 @@ class EvalPanoptic:
         result_dicts['pq_things'] = float(pq_things)
         result_dicts['rq_things'] = float(rq_things)
         result_dicts['sq_things'] = float(sq_things)
+        result_dicts['pq_novel_stuff'] = float(pq_novel_stuff)
+        result_dicts['rq_novel_stuff'] = float(rq_novel_stuff)
+        result_dicts['sq_novel_stuff'] = float(sq_novel_stuff)
+        result_dicts['pq_novel_things'] = float(pq_novel_things)
+        result_dicts['rq_novel_things'] = float(rq_novel_things)
+        result_dicts['sq_novel_things'] = float(sq_novel_things)
 
         if self.logger is not None:
             # print_log('|        |   IoU   |   PQ   |   RQ   |  SQ   |',
             #           self.logger)
-            print_log('|{:20s}|{:10s}|{:10s}|{:10s}|{:10s}|'.format('', 'IoU', 'PQ', 'RQ', 'SQ'),self.logger)
+            print_log('|{:20s}|{:11s}|{:11s}|{:11s}|{:11s}|'.format('', 'IoU', 'PQ', 'RQ', 'SQ'),self.logger)
             for k, v in output_dict.items():
                 print_log(
                     '|{}| {:.6f}% | {:.6f}% | {:.6f}% | {:.6f}% |'.format(
                         k.ljust(20), v['miou']*100, v['pq']*100, v['rq']*100, v['sq']*100),
                     self.logger)
             for k,v in result_dicts.items():
-                print_log(f'{k}:\t{v*100}%',self.logger)
+                print_log('{k}:\t{:.6f}%'.format(v*100),self.logger)
             print_log('True Positive: ', self.logger)
             print_log('\t|\t'.join([str(x) for x in self.pan_tp]), self.logger)
             print_log('False Positive: ')
@@ -376,6 +395,8 @@ def panoptic_seg_eval(gt_labels: List[np.ndarray],
                       classes: List[str],
                       thing_classes: List[str],
                       stuff_classes: List[str],
+                      thing_novel_classes: List[str],
+                      stuff_novel_classes: List[str],
                       include: List[int],
                       dataset_type: str,
                       min_num_points: int,
@@ -407,7 +428,8 @@ def panoptic_seg_eval(gt_labels: List[np.ndarray],
     Returns:
         dict[float]: Dict of results.
     """
-    panoptic_seg_eval = EvalPanoptic(classes, thing_classes, stuff_classes, include, dataset_type,
+    panoptic_seg_eval = EvalPanoptic(classes, thing_classes, stuff_classes,thing_novel_classes,stuff_novel_classes,
+                                     include, dataset_type,
                                      min_num_points, id_offset, label2cat,
                                      ignore_index, logger)
     ret_dict = panoptic_seg_eval.evaluate(gt_labels, seg_preds)

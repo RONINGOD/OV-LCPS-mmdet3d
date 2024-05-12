@@ -6,7 +6,7 @@ from mmdet.utils import reduce_mean
 from mmdet.models.losses import accuracy
 import torch.nn.functional as F
 from mmcv.cnn import build_activation_layer, build_norm_layer
-
+from mmdet.models.losses import CrossEntropyLoss,FocalLoss
 from mmengine.structures import InstanceData
 
 from mmcv.ops import SubMConv3d
@@ -782,7 +782,8 @@ class _PFCHead(nn.Module):
                 thing_scores, thing_labels = scores.sigmoid().max(dim=1)
             else:
                 thing_scores, thing_labels = scores.max(dim=1)
-            thing_scores *= 2
+            if isinstance(self.loss_cls,FocalLoss):
+                thing_scores *= 2
             thing_labels += self.thing_class[0]
             if self.panoptic_use_sigmoid:
                 stuff_scores = class_pred[self.num_queries:][:, self.stuff_class].diag().sigmoid()

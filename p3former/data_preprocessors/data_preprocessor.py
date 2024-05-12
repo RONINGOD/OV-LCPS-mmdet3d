@@ -479,7 +479,6 @@ class _Det3DDataPreprocessor(DetDataPreprocessor):
                     unseen_mask = ~data_sample.gt_pts_seg.seenmask
                     pts_instance_mask[unseen_mask] = self.ignore_index
                     pts_semantic_mask[unseen_mask] = self.ignore_index
-                    # seenmask_indices = seenmask[:, 0].nonzero().squeeze()
                     
                 num_points = res_coors.shape[0]
 

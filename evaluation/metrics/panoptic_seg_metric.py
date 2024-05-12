@@ -15,8 +15,11 @@ import numpy as np
 @METRICS.register_module()
 class _PanopticSegMetric(SegMetric):
     def __init__(self,
+                 class_names: List[str],
                  thing_class_inds: List[int],
                  stuff_class_inds: List[int],
+                 thing_novel_class_inds: List[int],
+                 stuff_novel_class_inds: List[int],
                  min_num_points: int,
                  id_offset: int,
                  dataset_type: str,
@@ -34,6 +37,12 @@ class _PanopticSegMetric(SegMetric):
         self.dataset_type=dataset_type # 'semantickitti'
         self.taskset = taskset 
         self.learning_map_inv = learning_map_inv # {0: 10, 1: 11, 2: 15, 3: 18, 4: 20, 5: 30, 6: 31, 7: 32, 8: 40, 9: 44, 10: 48, 11: 49, 12: 50, 13: 51, ...}
+        self.novel_class_inds = thing_novel_class_inds+stuff_novel_class_inds
+        self.thing_novel_class_inds = thing_novel_class_inds
+        self.stuff_novel_class_inds = stuff_novel_class_inds
+        self.classes = class_names
+        for i in self.novel_class_inds:
+            self.classes[i] = self.classes[i] + ' (novel)'
 
         super(_PanopticSegMetric, self).__init__(
             pklfile_prefix=pklfile_prefix,
@@ -63,11 +72,13 @@ class _PanopticSegMetric(SegMetric):
         # {0: 'car', 1: 'bicycle', 2: 'motorcycle', 3: 'truck', 4: 'bus', 5: 'person', 6: 'bicyclist', 7: 'motorcyclist', 8: 'road', 9: 'parking', 10: 'sidewalk', 11: 'other-ground', 12: 'building', 13: 'fence', ...}
         label2cat = self.dataset_meta['label2cat']
         ignore_index = self.dataset_meta['ignore_index'] # 19
-        classes = self.dataset_meta['classes'] # ['car', 'bicycle', 'motorcycle', 'truck', 'bus', 'person', 'bicyclist', 'motorcyclist', 'road', 'parking', 'sidewalk', 'other-ground', 'building', 'fence', ...]
+        # classes = self.dataset_meta['classes'] # ['car', 'bicycle', 'motorcycle', 'truck', 'bus', 'person', 'bicyclist', 'motorcyclist', 'road', 'parking', 'sidewalk', 'other-ground', 'building', 'fence', ...]
+        classes = self.classes
         thing_classes = [classes[i] for i in self.thing_class_inds] # ['car', 'bicycle', 'motorcycle', 'truck', 'bus', 'person', 'bicyclist', 'motorcyclist']
         stuff_classes = [classes[i] for i in self.stuff_class_inds] # ['road', 'parking', 'sidewalk', 'other-ground', 'building', 'fence', 'vegetation', 'trunck', 'terrian', 'pole', 'traffic-sign']
         include = self.thing_class_inds + self.stuff_class_inds # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, ...]
-
+        thing_novel_classes = [classes[i] for i in self.thing_novel_class_inds]
+        stuff_novel_classes = [classes[i] for i in self.stuff_novel_class_inds]
         gt_labels = []
         seg_preds = []
         for eval_ann, sinlge_pred_results in results:
@@ -75,7 +86,8 @@ class _PanopticSegMetric(SegMetric):
             seg_preds.append(sinlge_pred_results)
 
         ret_dict = panoptic_seg_eval(gt_labels, seg_preds, classes,
-                                     thing_classes, stuff_classes, include, self.dataset_type,
+                                     thing_classes, stuff_classes, thing_novel_classes, stuff_novel_classes,
+                                     include, self.dataset_type,
                                      self.min_num_points, self.id_offset,
                                      label2cat, ignore_index, logger)
 
