@@ -16,6 +16,7 @@ from mmengine.model import BaseModule
 
 from mmdet3d.registry import MODELS
 from mmdet3d.utils import ConfigType
+from mmengine.model import constant_init
 
 
 class AsymmResBlock(BaseModule):
@@ -78,6 +79,17 @@ class AsymmResBlock(BaseModule):
             indice_key=indice_key + 'bef')
         self.act1_1 = build_activation_layer(act_cfg)
         self.bn1_1 = build_norm_layer(norm_cfg, out_channels)[1]
+        self.init_weights()
+        
+    def init_weights(self):
+        if self.bn0_0 is not None:
+            constant_init(self.bn0_0, val=1, bias=0)
+        if self.bn0_1 is not None:
+            constant_init(self.bn0_1, val=1, bias=0)
+        if self.bn1_0 is not None:
+            constant_init(self.bn1_0, val=1, bias=0)
+        if self.bn1_1 is not None:
+            constant_init(self.bn1_1, val=1, bias=0)
 
     def forward(self, x: SparseConvTensor) -> SparseConvTensor:
         """Forward pass."""
@@ -190,6 +202,17 @@ class AsymmeDownBlock(BaseModule):
                     padding=1,
                     indice_key=indice_key,
                     bias=False)
+        self.init_weights()
+        
+    def init_weights(self):
+        if self.bn0_0 is not None:
+            constant_init(self.bn0_0, val=1, bias=0)
+        if self.bn0_1 is not None:
+            constant_init(self.bn0_1, val=1, bias=0)
+        if self.bn1_0 is not None:
+            constant_init(self.bn1_0, val=1, bias=0)
+        if self.bn1_1 is not None:
+            constant_init(self.bn1_1, val=1, bias=0)
 
     def forward(self, x: SparseConvTensor) -> SparseConvTensor:
         """Forward pass."""
@@ -288,6 +311,17 @@ class AsymmeUpBlock(BaseModule):
             kernel_size=3,
             indice_key=up_key,
             bias=False)
+        self.init_weights()
+        
+    def init_weights(self):
+        if self.trans_bn is not None:
+            constant_init(self.trans_bn, val=1, bias=0)
+        if self.bn1 is not None:
+            constant_init(self.bn1, val=1, bias=0)
+        if self.bn2 is not None:
+            constant_init(self.bn2, val=1, bias=0)
+        if self.bn3 is not None:
+            constant_init(self.bn3, val=1, bias=0)
 
     def forward(self, x: SparseConvTensor,
                 skip: SparseConvTensor) -> SparseConvTensor:
@@ -366,6 +400,15 @@ class DDCMBlock(BaseModule):
             indice_key=indice_key)
         self.bn3 = build_norm_layer(norm_cfg, out_channels)[1]
         self.act3 = build_activation_layer(act_cfg)
+        self.init_weights()
+        
+    def init_weights(self):
+        if self.bn1 is not None:
+            constant_init(self.bn1, val=1, bias=0)
+        if self.bn2 is not None:
+            constant_init(self.bn2, val=1, bias=0)
+        if self.bn3 is not None:
+            constant_init(self.bn3, val=1, bias=0)
 
     def forward(self, x: SparseConvTensor) -> SparseConvTensor:
         """Forward pass."""
@@ -469,6 +512,11 @@ class _Asymm3DSpconv(BaseModule):
                 indice_key="mc")
             self.addBn = build_norm_layer(norm_cfg, out_channels)[1]
             self.addAct = build_activation_layer(dict(type='LeakyReLU'))
+        self.init_weights()
+        
+    def init_weights(self):
+        if self.addBn is not None:
+            constant_init(self.addBn, val=1, bias=0)
 
     def forward(self, voxel_features: torch.Tensor, coors: torch.Tensor,
                 batch_size: int) -> SparseConvTensor:

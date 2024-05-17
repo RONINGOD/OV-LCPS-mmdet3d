@@ -68,7 +68,7 @@ class MLP(nn.Module):
         return input
 
 @MODELS.register_module()
-class _PFCHead(nn.Module):
+class _PFCHeadQueryPoints(nn.Module):
     """P3Former head for 3D panoptic segmentation."""
 
     def __init__(self,
@@ -785,7 +785,7 @@ class _PFCHead(nn.Module):
             if isinstance(self.loss_cls,FocalLoss):
                 thing_scores *= 2
             elif isinstance(self.loss_cls,CrossEntropyLoss):
-                thing_scores *= 2
+                thing_scores *= 1
             thing_labels += self.thing_class[0]
             if self.panoptic_use_sigmoid:
                 stuff_scores = class_pred[self.num_queries:][:, self.stuff_class].diag().sigmoid()

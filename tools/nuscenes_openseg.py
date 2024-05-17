@@ -30,11 +30,13 @@ def get_parser():
     parser.add_argument("--version",default='v1.0-mini',type=str,help='nuscenes data version')
     parser.add_argument("--split",default='train',type=str,help='nuscenes data split')
     parser.add_argument("--start",default=0,type=int,help='nuscenes data start id')
+    parser.add_argument("--sweeps_num",default=10,type=int,help='nuscenes data sweep nums')
     parser.add_argument(
         "--output",
         default='/home/coisini/data/nuscenes_openseg_features',
         help="A file or directory to save output features."
     )
+    parser.add_argument("--fuse_sweeps_feat",default=False,type=bool,help='whether fuse sweeps feat')
     parser.add_argument(
         '--openseg_model', 
         type=str, 
@@ -86,6 +88,8 @@ def main(args):
     version = args.version
     split = args.split
     output = args.output
+    sweeps_num = args.sweeps_num
+    fuse_sweeps_feat = args.fuse_sweeps_feat
     assert data_root, "The input path(s) was not found"
     make_file(output) 
 
@@ -93,8 +97,8 @@ def main(args):
     img_size = (800, 450) # resize image
     nusc = NuScenes(version=version,dataroot=data_root,verbose=True)
 
-    with open(f'{data_root}/nuscenes_pkl/nuscenes_infos_{split}_mini.pkl', 'rb') as f:
-        nusc_data = pickle.load(f)['infos']
+    with open(f'{data_root}/nus_pkl/nuscenes_infos_{split}.pkl', 'rb') as f:
+        nusc_data = pickle.load(f)['data_list']
     CAM_NAME_LIST = ['CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_BACK_LEFT',
                      'CAM_BACK', 'CAM_BACK_RIGHT', 'CAM_FRONT_RIGHT']
     NUSCENES_LABELS_16 = ['barrier', 'bicycle', 'bus', 'car', 'construction vehicle', 'motorcycle', 'person', 'traffic cone',
@@ -148,10 +152,10 @@ def main(args):
         transfer_list.append(count[num])
     transfer_list  = np.array([0]+transfer_list)
     np.save(os.path.join(output,'transfer_list.npy'),transfer_list)
-    text_features = build_text_embedding(base_total_add_noise)
-    np.save(os.path.join(output,'base32_text_features.npy'),text_features)
-    text_features = build_text_embedding(total_add_noise)
-    np.save(os.path.join(output,'total44_text_features.npy'),text_features)
+    # text_features = build_text_embedding(base_total_add_noise)
+    # np.save(os.path.join(output,'base32_text_features.npy'),text_features)
+    # text_features = build_text_embedding(total_add_noise)
+    # np.save(os.path.join(output,'total44_text_features.npy'),text_features)
     # load the openseg model
     saved_model_path = args.openseg_model
     args.text_emb = None
@@ -168,15 +172,9 @@ def main(args):
         start_time = time.time()
         info = nusc_data[index]
         token = sample_data['token']
-        lidar_path = info['lidar_path']
         lidar_token = nusc.get('sample', info['token'])['data']['LIDAR_TOP']
         lidar_channel = nusc.get("sample_data", lidar_token)
-        if version == "v1.0-trainval":
-            lidar_path = lidar_path[16:]
-        elif version == "v1.0-mini":
-            lidar_path = lidar_path[44:]
-        elif version == "v1.0-test":
-            lidar_path = lidar_path[16:]
+        lidar_path = lidar_channel['filename']
         pcd_data_name = lidar_path.split('.')[0]
         img_features_path = os.path.join(output,pcd_data_name+'.npz')
         # if os.path.exists(img_features_path) or index<start_id:
@@ -187,7 +185,37 @@ def main(args):
         #     pbar.update(1)
         #     continue
 
-        points = np.fromfile(os.path.join(data_root, lidar_path), dtype=np.float32, count=-1).reshape([-1, 5])
+        key_frame_points = np.fromfile(os.path.join(data_root, lidar_path), dtype=np.float32, count=-1).reshape([-1, 5])
+        sweep_points_list = [key_frame_points]
+        ts = info['timestamp']
+        if 'lidar_sweeps' in info:
+            if len(info['lidar_sweeps']) <= sweeps_num:
+                choices = np.arange(len(info['lidar_sweeps']))
+            elif split=='test':
+                choices = np.arange(sweeps_num)
+            else:
+                choices = np.random.choice(
+                    len(info['lidar_sweeps']),
+                    sweeps_num,
+                    replace=False)
+            for idx in choices:
+                sweep = info['lidar_sweeps'][idx]
+                points_sweep = np.fromfile(
+                    sweep['lidar_points']['lidar_path'])
+                points_sweep = np.copy(points_sweep).reshape(-1, 5)
+                # bc-breaking: Timestamp has divided 1e6 in pkl infos.
+                sweep_ts = sweep['timestamp']
+                lidar2sensor = np.array(sweep['lidar_points']['lidar2sensor'])
+                points_sweep[:, :
+                             3] = points_sweep[:, :3] @ lidar2sensor[:3, :3]
+                points_sweep[:, :3] -= lidar2sensor[:3, 3]
+                points_sweep[:, 4] = ts - sweep_ts
+                sweep_points_list.append(points_sweep)
+        total_points = np.concatenate(sweep_points_list,axis=0)
+        if fuse_sweeps_feat:
+            points = total_points
+        else:
+            points = key_frame_points
         pcd = PCDTransformTool(points[:, :3])
         n_points_cur = points.shape[0]
         rec = nusc.get('sample', token)
@@ -198,7 +226,7 @@ def main(args):
         vis_id = torch.zeros((n_points_cur, num_img), dtype=int)
         # feat_2d_list = torch.zeros((num_img,args.feat_dim,img_size[1],img_size[0]))
         for img_id,cam_name in enumerate(CAM_NAME_LIST):
-            cam_token = info['cams'][cam_name]['sample_data_token']
+            cam_token = info['images'][cam_name]['sample_data_token']
             cam_channel = nusc.get('sample_data', cam_token)
             camera_sample = nusc.get('sample_data', rec['data'][cam_name])
             # Points live in the point sensor frame. So they need to be transformed via global to the image plane.
@@ -207,6 +235,7 @@ def main(args):
             pcd_trans_tool = copy.deepcopy(pcd)
             pcd_trans_tool.rotate(Quaternion(cs_record['rotation']).rotation_matrix)
             pcd_trans_tool.translate(np.array(cs_record['translation']))
+            # 2&3 asynchronous compensation
             # Second step: transform from ego to the global frame at timestamp of the first frame in the sequence pack.
             poserecord = nusc.get('ego_pose', lidar_channel['ego_pose_token'])
             pcd_trans_tool.rotate(Quaternion(poserecord['rotation']).rotation_matrix)
@@ -254,13 +283,12 @@ def main(args):
         mask = torch.zeros(n_points_cur, dtype=torch.bool)
         mask[point_ids] = True
         feat_save = feat_bank[mask].half().numpy()
+        sweeps_mask = torch.zeros(total_points.shape[0],dtype=torch.bool)
+        sweeps_mask[:n_points_cur] = mask
         mask = mask.numpy()
+        sweeps_mask = sweeps_mask.numpy()
         dir_name = os.path.dirname(img_features_path)
         make_file(dir_name)
-        save_dict = {"point_feat": feat_save,
-                     "point_mask": mask,
-                    #  "img_feat":feat_2d_list
-                     }
         np.savez_compressed(img_features_path, point_feat=feat_save, point_mask=mask)   
         pbar.set_postfix({
             "token":sample_data['token'],

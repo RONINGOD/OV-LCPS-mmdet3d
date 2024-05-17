@@ -68,7 +68,7 @@ class MLP(nn.Module):
         return input
 
 @MODELS.register_module()
-class _PFCHead(nn.Module):
+class _PFCHeadQuery(nn.Module):
     """P3Former head for 3D panoptic segmentation."""
 
     def __init__(self,
@@ -234,8 +234,8 @@ class _PFCHead(nn.Module):
                 sem_pred = get_classification_logits(sem_fea,text_features,self.logit_scale)
                 sem_preds.append(sem_pred)
                 # stuff_queries = sem_queries[b][self.stuff_class] # [11,256]
-                stuff_queries = sem_que[self.stuff_class] # [6,256]
-                queries[b] = torch.cat([queries[b], stuff_queries], dim=0) # [134,256]
+                # stuff_queries = sem_que[self.stuff_class] # [6,256]
+                # queries[b] = torch.cat([queries[b], stuff_queries], dim=0) # [134,256]
 
         return queries, pe_features, mpe, sem_preds
 
@@ -366,7 +366,7 @@ class _PFCHead(nn.Module):
             losses['loss_lovasz'] = self.loss_lovasz(
                 sem_preds, seg_label, ignore_index=self.ignore_index)
         return losses
-    
+
     def bipartite_matching(self, class_preds, mask_preds, pos_mask_preds, batch_data_samples,text_features):
         gt_classes, gt_masks = self.generate_mask_class_target(batch_data_samples) # [19] [19,41589]
 
@@ -374,28 +374,36 @@ class _PFCHead(nn.Module):
         gt_thing_masks = []
         gt_stuff_classes = []
         gt_stuff_masks = []
+        gt_thing_stuff_classes = []
+        gt_thing_stuff_masks = []
 
         cls_targets_buffer = []
         mask_targets_buffer = []
         label_weights_buffer = []
+        
 
         for b in range(len(gt_classes)):
-            is_thing_class = (torch.isin(gt_classes[b],self.thing_class)) & (gt_classes[b]!=self.ignore_index)
-            is_stuff_class = (torch.isin(gt_classes[b],self.stuff_class)) & (gt_classes[b]!=self.ignore_index)
-            gt_thing_classes.append(gt_classes[b][is_thing_class])
-            gt_thing_masks.append(gt_masks[b][is_thing_class])
-            gt_stuff_classes.append(gt_classes[b][is_stuff_class])
-            gt_stuff_masks.append(gt_masks[b][is_stuff_class])
+            # PFC match base things and stuff
+            is_thing_stuff_class = gt_classes[b]!=self.ignore_index
+            gt_thing_stuff_classes.append(gt_classes[b][is_thing_stuff_class])
+            gt_thing_stuff_masks.append(gt_masks[b][is_thing_stuff_class])
+            
+            # is_thing_class = (torch.isin(gt_classes[b],self.thing_class)) & (gt_classes[b]!=self.ignore_index)
+            # is_stuff_class = (torch.isin(gt_classes[b],self.stuff_class)) & (gt_classes[b]!=self.ignore_index)
+            # gt_thing_classes.append(gt_classes[b][is_thing_class])
+            # gt_thing_masks.append(gt_masks[b][is_thing_class])
+            # gt_stuff_classes.append(gt_classes[b][is_stuff_class])
+            # gt_stuff_masks.append(gt_masks[b][is_stuff_class])
 
         sampling_results = []
         for b in range(len(mask_preds[0])):
-            thing_masks_pred_detach = mask_preds[0][b][:self.num_queries,:].detach() # [128, 13948]
-            # get seen part grid_mask错了
-            grid_mask = batch_data_samples[b].gt_pts_seg.grid_mask
-            thing_masks_pred_detach = thing_masks_pred_detach.permute(1,0)[grid_mask].permute(1,0) # [128, 13555]
+            # thing_masks_pred_detach = mask_preds[0][b][:self.num_queries,:].detach() # [128, 13948]
+            thing_stuff_masks_pred_detach = mask_preds[0][b][:self.num_queries,:].detach()
+            # sampled_gt_instances = InstanceData(
+            #     labels=gt_thing_classes[b], masks=gt_thing_masks[b]) # [27], [27, 9493]
             sampled_gt_instances = InstanceData(
-                labels=gt_thing_classes[b], masks=gt_thing_masks[b]) # [27], [27, 9493]
-            sampled_pred_instances = InstanceData(masks=thing_masks_pred_detach)
+                labels=gt_thing_stuff_classes[b], masks=gt_thing_stuff_masks[b])
+            sampled_pred_instances = InstanceData(masks=thing_stuff_masks_pred_detach) # 不仅仅采样things还要采样stuff
 
             assign_result = self.zero_assigner.assign(
                 sampled_pred_instances,
@@ -406,7 +414,7 @@ class _PFCHead(nn.Module):
                                                     sampled_gt_instances)
             sampling_results.append(sampling_result)
 
-        cls_targets, mask_targets, label_weights, _ = self.get_targets(sampling_results, gt_stuff_masks, gt_stuff_classes)
+        cls_targets, mask_targets, label_weights, _ = self.get_targets(sampling_results)
         cls_targets_buffer.append(cls_targets)
         mask_targets_buffer.append(mask_targets)
         label_weights_buffer.append(label_weights)
@@ -415,21 +423,21 @@ class _PFCHead(nn.Module):
             sampling_results = []
             for b in range(len(mask_preds[0])):
                 if class_preds[layer] is not None:
-                    thing_class_pred_detach = class_preds[layer][b][:self.num_queries,:].detach()
+                    # thing_class_pred_detach = class_preds[layer][b][:self.num_queries,:].detach()
+                    thing_stuff_class_pred_detach = class_preds[layer][b][:self.num_queries,:].detach()
                 else:
                     # for layer 1, we don't have class_preds from layer 0, so we use class_preds from layer 1 for matching
-                    thing_class_pred_detach = class_preds[layer+1][b][:self.num_queries,:].detach()
+                    # thing_class_pred_detach = class_preds[layer+1][b][:self.num_queries,:].detach()
+                    thing_stuff_class_pred_detach = class_preds[layer+1][b][:self.num_queries,:].detach()
                     
-                thing_class_pred_detach = get_classification_logits(thing_class_pred_detach,text_features,self.logit_scale)
-                thing_masks_pred_detach = thing_masks_pred_detach = mask_preds[layer][b][:self.num_queries,:].detach()
-                
-                # get seen part
-                grid_mask = batch_data_samples[b].gt_pts_seg.grid_mask
-                thing_masks_pred_detach = thing_masks_pred_detach.permute(1,0)[grid_mask].permute(1,0)
+                thing_stuff_class_pred_detach = get_classification_logits(thing_stuff_class_pred_detach,text_features,self.logit_scale)
+                # thing_masks_pred_detach = thing_masks_pred_detach = mask_preds[layer][b][:self.num_queries,:].detach()
+                thing_stuff_masks_pred_detach = mask_preds[layer][b][:self.num_queries,:].detach()
+
                 sampled_gt_instances = InstanceData(
-                    labels=gt_thing_classes[b], masks=gt_thing_masks[b])
+                    labels=gt_thing_stuff_classes[b], masks=gt_thing_stuff_masks[b])
                 sampled_pred_instances = InstanceData(
-                    scores=thing_class_pred_detach, masks=thing_masks_pred_detach)
+                    scores=thing_stuff_class_pred_detach, masks=thing_stuff_masks_pred_detach)
                 assign_result = self.assigner.assign(
                     sampled_pred_instances,
                     sampled_gt_instances,
@@ -439,7 +447,7 @@ class _PFCHead(nn.Module):
                                                       sampled_gt_instances)
                 sampling_results.append(sampling_result)
 
-            cls_targets, mask_targets, label_weights, _ = self.get_targets(sampling_results, gt_stuff_masks, gt_stuff_classes)
+            cls_targets, mask_targets, label_weights, _ = self.get_targets(sampling_results)
             cls_targets_buffer.append(cls_targets)
             mask_targets_buffer.append(mask_targets)
             label_weights_buffer.append(label_weights)
@@ -569,9 +577,9 @@ class _PFCHead(nn.Module):
         gt_sem_classes,
         positive_weight,
     ):
-        num_pos = positive_indices.shape[0]
-        num_neg = negative_indices.shape[0]
-        num_samples = num_pos + num_neg
+        num_pos = positive_indices.shape[0] # 34
+        num_neg = negative_indices.shape[0] # 94
+        num_samples = num_pos + num_neg # 128 == num_queries
         num_points = positive_gt_masks.shape[-1]
         labels = positive_gt_masks.new_full((num_samples, ),
                                             self.ignore_index,
@@ -585,13 +593,15 @@ class _PFCHead(nn.Module):
             positive_weight = 1.0 if positive_weight <= 0 else positive_weight
 
             if positive_gt_labels is not None:
-                labels[positive_indices] = positive_gt_labels
+                labels[positive_indices] = positive_gt_labels # query only predict things
             label_weights[positive_indices] = positive_weight
-            mask_targets[positive_indices, ...] = positive_gt_masks
+            mask_targets[positive_indices, ...] = positive_gt_masks # [34, 14221]
             mask_weights[positive_indices, ...] = positive_weight
 
         if num_neg > 0:
             label_weights[negative_indices] = 1.0
+            
+        label_weights[:, self.ignore_index] = 0
 
         if gt_sem_masks is not None and gt_sem_classes is not None:
             sem_labels = positive_gt_masks.new_full((len(self.stuff_class), ),
@@ -776,27 +786,11 @@ class _PFCHead(nn.Module):
         for i in range(len(class_preds)):
             class_pred = class_preds[i]
             mask_pred = mask_preds[i]
-
-            scores = class_pred[:self.num_queries][:, self.thing_class]
             if self.panoptic_use_sigmoid:
-                thing_scores, thing_labels = scores.sigmoid().max(dim=1)
+                scores,labels = class_pred.sigmod().max(dim=-1)
             else:
-                thing_scores, thing_labels = scores.max(dim=1)
-            if isinstance(self.loss_cls,FocalLoss):
-                thing_scores *= 2
-            elif isinstance(self.loss_cls,CrossEntropyLoss):
-                thing_scores *= 2
-            thing_labels += self.thing_class[0]
-            if self.panoptic_use_sigmoid:
-                stuff_scores = class_pred[self.num_queries:][:, self.stuff_class].diag().sigmoid()
-            else:
-                stuff_scores = class_pred[self.num_queries:][:, self.stuff_class].diag()
-            stuff_labels = self.stuff_class
-
-
-            scores = torch.cat([thing_scores, stuff_scores], dim=0)
-            labels = torch.cat([thing_labels, stuff_labels], dim=0)
-
+                scores,labels = class_pred.max(dim=-1)
+            scores[self.thing_class] *= 2
             keep = ((scores > self.score_thr) & (labels != self.ignore_index))
             cur_scores = scores[keep]  # [pos_proposal_num]
 

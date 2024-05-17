@@ -34,7 +34,7 @@ model = dict(
         clip_vision_dim = 768,
         ),
     decode_head=dict(
-        type='_PFCHead',
+        type='_PFCHeadQuery',
         num_classes=num_classes,
         num_queries=128,
         embed_dims=128,
@@ -48,7 +48,7 @@ model = dict(
         assigner_cfg=dict(
                 type='mmdet.HungarianAssigner',
                 match_costs=[
-                        dict(type='mmdet.FocalLossCost', gamma=4.0,alpha=0.25,weight=1.0),
+                        dict(type='mmdet.CrossEntropyLossCost', use_sigmoid=True, weight=1.0),
                         dict(type='mmdet.FocalLossCost', weight=1.0, binary_input=True, gamma=2.0, alpha=0.25),
                         dict(type='mmdet.DiceCost', weight=2.0, pred_act=True),
                     ]),
