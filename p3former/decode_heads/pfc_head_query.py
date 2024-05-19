@@ -790,7 +790,8 @@ class _PFCHeadQuery(nn.Module):
                 scores,labels = class_pred.sigmod().max(dim=-1)
             else:
                 scores,labels = class_pred.max(dim=-1)
-            scores[self.thing_class] *= 2
+            thing_mask = torch.isin(labels,self.thing_class)
+            scores[thing_mask] *= 2
             keep = ((scores > self.score_thr) & (labels != self.ignore_index))
             cur_scores = scores[keep]  # [pos_proposal_num]
 

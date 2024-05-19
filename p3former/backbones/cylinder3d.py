@@ -512,11 +512,8 @@ class _Asymm3DSpconv(BaseModule):
                 indice_key="mc")
             self.addBn = build_norm_layer(norm_cfg, out_channels)[1]
             self.addAct = build_activation_layer(dict(type='LeakyReLU'))
-        self.init_weights()
-        
-    def init_weights(self):
-        if self.addBn is not None:
             constant_init(self.addBn, val=1, bias=0)
+            
 
     def forward(self, voxel_features: torch.Tensor, coors: torch.Tensor,
                 batch_size: int) -> SparseConvTensor:

@@ -47,8 +47,9 @@ class _VisionClipLiDAR(BaseModule):
         """Extract features from points."""
         lidar_encoded_feats = self.voxel_encoder(batch_inputs['voxels']['voxels'],
                                            batch_inputs['voxels']['coors'])
-        lidar_voxel_feats, _= self.lidar_backbone(lidar_encoded_feats[0], lidar_encoded_feats[1],
+        lidar_voxel_feats = self.lidar_backbone(lidar_encoded_feats[0], lidar_encoded_feats[1],
                           len(batch_inputs['points']))
-        voxel_feats = torch.cat([clip_voxel_feats,lidar_voxel_feats])
+        lidar_voxel_feats = lidar_voxel_feats.features
+        voxel_feats = torch.cat([clip_voxel_feats,lidar_voxel_feats],dim=1)
         batch_inputs['voxel_vision_features'] = clip_voxel_feats
         return voxel_feats,voxel_coors

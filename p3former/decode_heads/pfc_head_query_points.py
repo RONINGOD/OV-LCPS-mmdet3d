@@ -80,6 +80,7 @@ class _PFCHeadQueryPoints(nn.Module):
                  ignore_index,
                  num_decoder_layers=6,
                  vision_clip_dim=768,
+                 lidar_dim = 128,
                  pos_dim=3,
                  transformer_decoder_cfg=dict(type='_Transformer_Decoder'),
                  loss_cls=None,
@@ -119,11 +120,16 @@ class _PFCHeadQueryPoints(nn.Module):
         self.use_pa_seg = use_pa_seg
         self.thing_class = thing_class
         self.stuff_class = stuff_class
+        self.base_thing_class = None
+        self.base_stuff_class = None
+        self.novel_stuff_class = None
+        self.novel_thing_class = None
         self.num_thing_classes = len(thing_class)
         self.num_stuff_classes = len(stuff_class)
         self.num_decoder_layers = num_decoder_layers
         self.num_queries = num_queries
         self.vision_clip_dim = vision_clip_dim
+        self.lidar_dim = lidar_dim
         self.geometric_ensemble_alpha = geometric_ensemble_alpha
         self.geometric_ensemble_beta = geometric_ensemble_beta
         self.use_pa_seg_loss = use_pa_seg_loss
@@ -132,7 +138,7 @@ class _PFCHeadQueryPoints(nn.Module):
         self.logit_scale = nn.Parameter(torch.ones([]) * init_logit_scale)
         self.mask_pooling = MaskPooling()
         # self.mask_features = nn.Conv1d(in_channels=vision_clip_dim, out_channels=vision_clip_dim, kernel_size=1, stride=1, padding=0)
-        vision_clip_proj_channels = (vision_clip_dim,embed_dims,embed_dims,embed_dims,embed_dims,embed_dims)
+        vision_clip_proj_channels = (vision_clip_dim+lidar_dim,embed_dims,embed_dims,embed_dims,embed_dims,embed_dims)
         self.pe_vision_proj = MLP(vision_clip_proj_channels,act_type='GELU',bias=True)
 
         self.loss_cls = MODELS.build(loss_cls)
@@ -234,8 +240,8 @@ class _PFCHeadQueryPoints(nn.Module):
                 sem_pred = get_classification_logits(sem_fea,text_features,self.logit_scale)
                 sem_preds.append(sem_pred)
                 # stuff_queries = sem_queries[b][self.stuff_class] # [11,256]
-                stuff_queries = sem_que[self.stuff_class] # [6,256]
-                queries[b] = torch.cat([queries[b], stuff_queries], dim=0) # [134,256]
+                base_stuff_queries = sem_que[self.base_stuff_class] # [6,256]
+                queries[b] = torch.cat([queries[b], base_stuff_queries], dim=0) # [134,256]
 
         return queries, pe_features, mpe, sem_preds
 
@@ -340,9 +346,13 @@ class _PFCHeadQueryPoints(nn.Module):
     def loss(self, batch_inputs, batch_data_samples, train_cfg):
         self.thing_class = batch_inputs['thing_class'][0]
         self.stuff_class = batch_inputs['stuff_class'][0]
+        self.base_thing_class = batch_inputs['base_thing_class'][0]
+        self.base_stuff_class = batch_inputs['base_stuff_class'][0]
+        self.novel_stuff_class = torch.tensor(sorted(list(set(self.stuff_class.tolist()) - set(self.base_stuff_class.tolist()))),device =self.stuff_class.device)
+        self.novel_thing_class = torch.tensor(sorted(list(set(self.thing_class.tolist()) - set(self.base_thing_class.tolist()))),device =self.thing_class.device)
         text_features = batch_inputs['text_features'][0].float()
-        voxel_vision_clip = batch_inputs['features']
-        projed_voxel_features = self.pe_vision_proj(voxel_vision_clip) # [V，256]
+        fusion_feats = batch_inputs['features']
+        projed_voxel_features = self.pe_vision_proj(fusion_feats) # [V，256]
         class_preds_buffer, mask_preds_buffer, pos_mask_preds_buffer, sem_preds = self.forward(projed_voxel_features, batch_inputs['voxels']['voxel_coors'],text_features)
         cls_targets_buffer, mask_targets_buffer, label_weights_buffer = self.bipartite_matching(class_preds_buffer, mask_preds_buffer, pos_mask_preds_buffer, batch_data_samples,text_features)
         losses = dict()
@@ -633,9 +643,14 @@ class _PFCHeadQueryPoints(nn.Module):
     def predict(self, batch_inputs, batch_data_samples):
         self.thing_class = batch_inputs['thing_class'][0]
         self.stuff_class = batch_inputs['stuff_class'][0]
+        self.base_thing_class = batch_inputs['base_thing_class'][0]
+        self.base_stuff_class = batch_inputs['base_stuff_class'][0]
+        self.novel_stuff_class = torch.tensor(sorted(list(set(self.stuff_class.tolist()) - set(self.base_stuff_class.tolist()))),device =self.stuff_class.device)
+        self.novel_thing_class = torch.tensor(sorted(list(set(self.thing_class.tolist()) - set(self.base_thing_class.tolist()))),device =self.thing_class.device)
         text_features = batch_inputs['text_features'][0].float()
-        voxel_vision_clip = batch_inputs['features']
-        projed_voxel_features = self.pe_vision_proj(voxel_vision_clip) # [V，256]
+        voxel_vision_clip = batch_inputs['voxel_vision_features']
+        fusion_feats = batch_inputs['features']
+        projed_voxel_features = self.pe_vision_proj(fusion_feats) # [V，256]
         class_preds_buffer, mask_preds_buffer, _, _ = self.forward(projed_voxel_features, batch_inputs['voxels']['voxel_coors'],text_features)
         voxel_coors = batch_inputs['voxels']['voxel_coors']
         batch_size = voxel_coors[:,0].max().item()+1
@@ -776,26 +791,32 @@ class _PFCHeadQueryPoints(nn.Module):
         for i in range(len(class_preds)):
             class_pred = class_preds[i]
             mask_pred = mask_preds[i]
-
-            scores = class_pred[:self.num_queries][:, self.thing_class]
+            thing_novel_stuff_class = torch.cat([self.thing_class,self.novel_stuff_class])
+            thing_novel_stuff_scores = class_pred[:self.num_queries][:, thing_novel_stuff_class]
             if self.panoptic_use_sigmoid:
-                thing_scores, thing_labels = scores.sigmoid().max(dim=1)
+                thing_novel_stuff_scores, thing_novel_stuff_labels = thing_novel_stuff_scores.sigmoid().max(dim=1)
             else:
-                thing_scores, thing_labels = scores.max(dim=1)
+                thing_novel_stuff_scores, thing_novel_stuff_labels = thing_novel_stuff_scores.max(dim=1)
+            thing_novel_stuff_labels += self.thing_class[0]
+            base_thing_mask = torch.isin(thing_novel_stuff_labels,self.base_thing_class)
+            novel_thing_mask = torch.isin(thing_novel_stuff_labels,self.novel_thing_class-(self.novel_thing_class[0]-self.base_thing_class[-1])+1)
+            thing_mask = torch.logical_or(base_thing_mask,novel_thing_mask)
+            novel_stuff_mask = torch.isin(thing_novel_stuff_labels,self.novel_stuff_class-(self.novel_thing_class[0]-self.base_thing_class[-1])+1)
             if isinstance(self.loss_cls,FocalLoss):
-                thing_scores *= 2
+                thing_novel_stuff_scores[thing_mask] *= 2
             elif isinstance(self.loss_cls,CrossEntropyLoss):
-                thing_scores *= 1
-            thing_labels += self.thing_class[0]
+                thing_novel_stuff_scores[thing_mask] *= 2
+            thing_novel_stuff_labels[novel_thing_mask]+=(self.novel_thing_class[0]-self.base_thing_class[-1]-1)
+            thing_novel_stuff_labels[novel_stuff_mask]+=(self.novel_thing_class[0]-self.base_thing_class[-1]-1)
             if self.panoptic_use_sigmoid:
-                stuff_scores = class_pred[self.num_queries:][:, self.stuff_class].diag().sigmoid()
+                base_stuff_scores = class_pred[self.num_queries:][:, self.base_stuff_class].diag().sigmoid()
             else:
-                stuff_scores = class_pred[self.num_queries:][:, self.stuff_class].diag()
-            stuff_labels = self.stuff_class
+                base_stuff_scores = class_pred[self.num_queries:][:, self.base_stuff_class].diag()
+            base_stuff_labels = self.base_stuff_class
 
 
-            scores = torch.cat([thing_scores, stuff_scores], dim=0)
-            labels = torch.cat([thing_labels, stuff_labels], dim=0)
+            scores = torch.cat([thing_novel_stuff_scores, base_stuff_scores], dim=0)
+            labels = torch.cat([thing_novel_stuff_labels, base_stuff_labels], dim=0)
 
             keep = ((scores > self.score_thr) & (labels != self.ignore_index))
             cur_scores = scores[keep]  # [pos_proposal_num]

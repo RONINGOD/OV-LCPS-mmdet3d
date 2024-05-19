@@ -852,3 +852,4 @@ class _PFCHead(nn.Module):
             semantic_preds.append(semantic_pred)
             instance_ids.append(instance_id)
         return (semantic_preds, instance_ids)
+s
