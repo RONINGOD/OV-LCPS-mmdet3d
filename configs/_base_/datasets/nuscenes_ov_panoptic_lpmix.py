@@ -113,7 +113,7 @@ train_pipeline = [
 
     dict(type='_Pack3DDetInputs', keys=['points', 'pts_semantic_mask', 'pts_instance_mask','seenmask',
                 'pts_clip_features','pts_clip_mask','pts_clip_features','pts_clip_mask','category_overlapping_mask',
-                'base_novel_mapping','base_novel_mapping_inv','thing_class','stuff_class','text_features'])
+                'base_novel_mapping','base_novel_mapping_inv','thing_class','stuff_class','text_features','base_thing_class','base_stuff_class'])
 ]
 
 test_pipeline = [
@@ -136,7 +136,7 @@ test_pipeline = [
     dict(type='PointSegClassMapping', ),
     dict(type='_Pack3DDetInputs', keys=['points', 'pts_semantic_mask', 'pts_instance_mask','seenmask',
                 'pts_clip_features','pts_clip_mask','pts_clip_features','pts_clip_mask','category_overlapping_mask',
-                'base_novel_mapping','base_novel_mapping_inv','thing_class','stuff_class','text_features'])
+                'base_novel_mapping','base_novel_mapping_inv','thing_class','stuff_class','text_features','base_thing_class','base_stuff_class'])
 ]
 
 

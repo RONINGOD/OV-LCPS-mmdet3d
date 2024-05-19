@@ -123,6 +123,8 @@ class _NuScenesDataset(Seg3DDataset):
             # self.text_features = np.load(osp.join(self.clip_feature_root,'total44_text_features.npy'))
         self.thing_class = np.sort(np.vectorize(base_novel_label_mapping_inv.__getitem__)(self.thing_list))
         self.stuff_class = np.sort(np.vectorize(base_novel_label_mapping_inv.__getitem__)(self.stuff_list))
+        self.base_thing_class = np.sort(np.vectorize(base_novel_label_mapping_inv.__getitem__)(self.base_thing_list))
+        self.base_stuff_class = np.sort(np.vectorize(base_novel_label_mapping_inv.__getitem__)(self.base_stuff_list))
         self.total_class = np.sort(np.vectorize(base_novel_label_mapping_inv.__getitem__)(np.hstack([0,self.base_thing_list+self.base_stuff_list])))
         self.category_overlapping_mask = np.hstack((np.full(1,True,dtype=bool),np.full(len(self.base_thing_list+self.base_stuff_list), True, dtype=bool),np.full(len(self.novel_thing_list+self.novel_stuff_list),False,dtype=bool)))
         seg_base_novel_label_mapping = np.zeros(len(base_novel_label_mapping.keys()), dtype=np.int64)
@@ -178,6 +180,8 @@ class _NuScenesDataset(Seg3DDataset):
             info['thing_class'] = self.thing_class
             info['stuff_class'] = self.stuff_class
             info['total_class'] = self.total_class
+            info['base_thing_class'] = self.base_thing_class
+            info['base_stuff_class'] = self.base_stuff_class
             info['category_overlapping_mask'] = self.category_overlapping_mask
             info['base_novel_mapping'] = self.base_novel_mapping
             info['base_novel_mapping_inv'] = self.base_novel_mapping_inv

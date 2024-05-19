@@ -51,14 +51,14 @@ model = dict(
         clip_vision_dim = 768,
         ),
     decode_head=dict(
-        type='_PFCHeadQuery', # _PFCHeadQuery
+        type='_PFCHead', # _PFCHeadQuery _PFCHeadQueryPoints
         geometric_ensemble_alpha=0.0,
         geometric_ensemble_beta=1.0,
         use_lable_weight = False,
-        cal_sem_loss = False,
+        cal_sem_loss = True,
         use_pa_seg_loss = True,
         use_dice_loss=True,
-        use_sem_loss=False,
+        use_sem_loss=True,
         panoptic_use_sigmoid = False,
         num_decoder_layers=6,
         num_classes = num_classes,
