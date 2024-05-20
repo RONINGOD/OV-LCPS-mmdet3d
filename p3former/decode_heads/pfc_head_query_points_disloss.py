@@ -564,11 +564,15 @@ class _PFCHeadQueryPointsDisLoss(nn.Module):
                             matched_pooled_clip_features)).mean()
             
             if self.use_lv:
-                voxel_clip_feature = torch.cat(voxel_clip_feature,dim=0)
-                m_q = torch.cat(mask_preds,dim=0)
-                class_preds = torch.cat(class_preds,dim=0)
-                f_rec = m_q.T @ class_preds
-                losses[f'loss_voxel_distillation_{layer}'] = self.voxel_distillation_loss(f_rec,voxel_clip_feature) / batch_size
+                loss_voxel_distillation = 0
+                valid_bs = 0
+                for b in range(batch_size):
+                    clip_feature = voxel_clip_feature[b]
+                    m_q = mask_preds[b]
+                    class_pred = class_preds[b]
+                    f_rec = m_q.T @ class_pred
+                    loss_voxel_distillation +=self.voxel_distillation_loss(f_rec,clip_feature)
+                losses[f'loss_voxel_distillation_{layer}'] = loss_voxel_distillation / batch_size
 
         # mask loss
         loss_mask = 0
