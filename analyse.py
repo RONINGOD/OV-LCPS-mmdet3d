@@ -125,21 +125,26 @@ import torch
 # data = np.load('/home/coisini/project/Ovlcps/0a1b4e0aa3824b0a96bafae7105c58cc.npz')
 # print(data)
 
-import torch
-from mmcv.ops import DynamicScatter,dynamic_scatter
-from mmcv.ops import Voxelization
+# import torch
+# from mmcv.ops import DynamicScatter,dynamic_scatter
+# from mmcv.ops import Voxelization
 
-voxel_size = (0.32, 0.32, 6)
-voxel_size_t = torch.tensor(voxel_size, device='cuda:0')
-point_cloud_range = [-74.88, -74.88, -2, 74.88, 74.88, 4]
-pc_range = torch.tensor(point_cloud_range, device='cuda:0')
-cluster_scatter = DynamicScatter(voxel_size, point_cloud_range, average_points=True)
-features = torch.tensor([[68.9309, 31.5947,  0.8600], 
-        [69.0586, 31.4590,  0.8594]], device='cuda:0')
-coors = torch.tensor([[  0,   0, 332, 449],[  0,   0, 332, 449]], device='cuda:0', dtype=torch.int32)
-voxel_mean, mean_coors = cluster_scatter(features, coors)
-print(voxel_mean, mean_coors)
-import torch_scatter
-print(torch_scatter.scatter_mean(features,coors[:,1:].long()))
+# voxel_size = (0.32, 0.32, 6)
+# voxel_size_t = torch.tensor(voxel_size, device='cuda:0')
+# point_cloud_range = [-74.88, -74.88, -2, 74.88, 74.88, 4]
+# pc_range = torch.tensor(point_cloud_range, device='cuda:0')
+# cluster_scatter = DynamicScatter(voxel_size, point_cloud_range, average_points=True)
+# features = torch.tensor([[68.9309, 31.5947,  0.8600], 
+#         [69.0586, 31.4590,  0.8594]], device='cuda:0')
+# coors = torch.tensor([[  0,   0, 332, 449],[  0,   0, 332, 449]], device='cuda:0', dtype=torch.int32)
+# voxel_mean, mean_coors = cluster_scatter(features, coors)
+# print(voxel_mean, mean_coors)
+# import torch_scatter
+# print(torch_scatter.scatter_mean(features,coors[:,1:].long()))
+
 # make sure voxelization is right
 # print((features - pc_range[None, :3]) // voxel_size_t[None,:])
+
+base = np.load('/home/coisini/data/nuscenes_openseg_features/base_text_features.npy')
+total = np.load('/home/coisini/data/nuscenes_openseg_features/total_text_features.npy')
+print((base-total[:13,:]).sum())

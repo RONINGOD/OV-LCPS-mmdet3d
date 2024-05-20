@@ -59,7 +59,7 @@ model = dict(
             feat_compression=16,
             return_point_feats=False),),
     decode_head=dict(
-        type='_PFCHeadQueryPoints', # _PFCHeadQuery _PFCHeadQueryPoints
+        type='_PFCHeadQueryPointsDisLoss', # _PFCHeadQuery _PFCHeadQueryPoints
         geometric_ensemble_alpha=0.0,
         geometric_ensemble_beta=1.0,
         use_lable_weight = False,
@@ -139,8 +139,8 @@ param_scheduler = [
 ]
 
 train_dataloader = dict(batch_size=1,num_workers=8, )
-val_dataloader = dict(batch_size=2,num_workers=8, )
-test_dataloader = dict(batch_size=2,num_workers=8, )
+val_dataloader = dict(batch_size=1,num_workers=8, )
+test_dataloader = dict(batch_size=1,num_workers=8, )
 # test_pipeline = [
 #     dict(
 #         type='LoadPointsFromFile',
@@ -177,6 +177,7 @@ custom_imports = dict(
         'p3former.decode_heads.pfc_head',
         'p3former.decode_heads.pfc_head_query',
         'p3former.decode_heads.pfc_head_query_points',
+        'p3former.decode_heads.pfc_head_query_points_disloss',
         'p3former.segmentors.pfc',
         'p3former.task_modules.samplers.mask_pseduo_sampler',
         'evaluation.metrics.panoptic_seg_metric',
@@ -187,4 +188,4 @@ custom_imports = dict(
         'datasets.transforms.formating',
     ],
     allow_failed_imports=False)
-# python -m torch.distributed.launch --node_rank=0 --nproc_per_node=2 --master_port=29503 ./train.py configs/pfc/pfc_nuscenes_qa_fusion.py --launcher pytorch
+# python -m torch.distributed.launch --node_rank=0 --nproc_per_node=2 --master_port=29503 ./train.py configs/pfc/pfc_nuscenes_qa_fusion_lo.py --launcher pytorch
