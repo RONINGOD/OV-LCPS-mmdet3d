@@ -68,8 +68,8 @@ model = dict(
         use_dice_loss=True,
         use_sem_loss=True,
         panoptic_use_sigmoid = False,
-        use_lo = True,
-        use_lv = False,
+        use_lo = False,
+        use_lv = True,
         num_decoder_layers=6,
         num_classes = num_classes,
         vision_clip_dim = 768,
@@ -190,4 +190,4 @@ custom_imports = dict(
         'datasets.transforms.formating',
     ],
     allow_failed_imports=False)
-# python -m torch.distributed.launch --node_rank=0 --nproc_per_node=2 --master_port=29503 ./train.py configs/pfc/pfc_nuscenes_qa_fusion_lo.py --launcher pytorch
+# python -m torch.distributed.launch --node_rank=0 --nproc_per_node=2 --master_port=29503 ./train.py configs/pfc/pfc_nuscenes_qa_fusion_lv.py --launcher pytorch

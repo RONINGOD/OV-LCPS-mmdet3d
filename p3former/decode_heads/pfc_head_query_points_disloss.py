@@ -93,7 +93,7 @@ class _PFCHeadQueryPointsDisLoss(nn.Module):
                  use_lable_weight = True,
                  cal_sem_loss = True,
                  use_lo = True,
-                 use_lv = False,
+                 use_lv = True,
                  assigner_zero_layer_cfg=None,
                  assigner_cfg=None,
                  sampler_cfg=None,
@@ -326,23 +326,41 @@ class _PFCHeadQueryPointsDisLoss(nn.Module):
 
     def get_matched_object(self,
         sampling_results,
+        voxel_vision_clip,
         class_preds=None,
         mask_preds=None):
         pos_inds = [sr.pos_inds for sr in sampling_results]
         neg_inds = [sr.neg_inds for sr in sampling_results]
-        (labels, mask_targets, label_weights, mask_weights) = multi_apply(
+        (matched_pooled_clip_features,matched_class_preds) = multi_apply(
             self._get_matched_object_single,
             pos_inds,
             neg_inds,
+            voxel_vision_clip,
+            class_preds,
+            mask_preds,
             )
-        return None
+        return matched_pooled_clip_features,matched_class_preds
     
     def _get_matched_object_single(
         self,
         positive_indices,
-        negative_indices,):
+        negative_indices,
+        voxel_vision_clip,
+        class_preds,
+        mask_preds,):
         
-        return None
+        clip_feature = voxel_vision_clip.unsqueeze(0)
+        mask_for_pooling = mask_preds.unsqueeze(0)
+        pooled_clip_feature = self.mask_pooling(clip_feature, mask_for_pooling).squeeze(0) # [261, 768]
+        clip_thing_matched = pooled_clip_feature[positive_indices]
+        clip_stuff_matched = pooled_clip_feature[self.num_queries:]
+        preds_thing_matched = class_preds[positive_indices]
+        preds_stuff_matched = class_preds[self.num_queries:]
+        
+        matched_pooled_clip_features = torch.cat([clip_thing_matched,clip_stuff_matched],dim=0)
+        matched_class_preds = torch.cat([preds_thing_matched,preds_stuff_matched],dim=0)                         
+        
+        return matched_pooled_clip_features,matched_class_preds
     
     def forward(self,
                 features,
@@ -374,7 +392,11 @@ class _PFCHeadQueryPointsDisLoss(nn.Module):
         return class_preds_buffer, mask_preds_buffer, pos_mask_preds_buffer, sem_preds
 
     def split_features(self,features,voxel_coors):
-        return None
+        batch_size = voxel_coors[:, 0].max().item() + 1
+        split_features = []
+        for b in range(batch_size):
+            split_features.append(features[voxel_coors[:, 0] == b])
+        return split_features
         
 
     def loss(self, batch_inputs, batch_data_samples, train_cfg):
@@ -390,12 +412,12 @@ class _PFCHeadQueryPointsDisLoss(nn.Module):
         projed_voxel_features = self.pe_vision_proj(fusion_feats) # [V，256]
         voxel_vision_clip = self.split_features(voxel_vision_clip,batch_inputs['voxels']['voxel_coors'])
         class_preds_buffer, mask_preds_buffer, pos_mask_preds_buffer, sem_preds = self.forward(projed_voxel_features, batch_inputs['voxels']['voxel_coors'],text_features)
-        cls_targets_buffer, mask_targets_buffer, label_weights_buffer = self.bipartite_matching(class_preds_buffer, mask_preds_buffer, pos_mask_preds_buffer, batch_data_samples,text_features,voxel_vision_clip)
+        cls_targets_buffer, mask_targets_buffer, label_weights_buffer, matched_pooled_clip_feature_buffer, matched_class_preds_buffer = self.bipartite_matching(class_preds_buffer, mask_preds_buffer, pos_mask_preds_buffer, batch_data_samples,text_features,voxel_vision_clip)
         losses = dict()
         for i in range(self.num_decoder_layers+1):
             losses.update(self.loss_single_layer(class_preds_buffer[i], mask_preds_buffer[i], pos_mask_preds_buffer[i],
                                                 cls_targets_buffer[i], mask_targets_buffer[i], label_weights_buffer[i], i, 
-                                                text_features,batch_data_samples))
+                                                text_features,batch_data_samples,matched_pooled_clip_feature_buffer[i], matched_class_preds_buffer[i],voxel_vision_clip))
         if self.use_sem_loss and self.cal_sem_loss:
             gt_semantic_segs = [
                 data_sample.gt_pts_seg.voxel_semantic_mask
@@ -424,8 +446,8 @@ class _PFCHeadQueryPointsDisLoss(nn.Module):
         cls_targets_buffer = []
         mask_targets_buffer = []
         label_weights_buffer = []
-        matched_class_preds = []
-        matched_pooled_clip_features = []
+        matched_class_preds_buffer = []
+        matched_pooled_clip_feature_buffer = []
 
         for b in range(len(gt_classes)):
             is_thing_class = (torch.isin(gt_classes[b],self.thing_class)) & (gt_classes[b]!=self.ignore_index)
@@ -453,6 +475,14 @@ class _PFCHeadQueryPointsDisLoss(nn.Module):
                                                     sampled_pred_instances,
                                                     sampled_gt_instances)
             sampling_results.append(sampling_result)
+    
+        layer=0
+        matched_pooled_clip_features,matched_class_preds = self.get_matched_object(sampling_results,
+                                                                voxel_vision_clip,
+                                                                class_preds[layer] if class_preds[layer] is not None else class_preds[layer+1],
+                                                                mask_preds[layer])
+        matched_class_preds_buffer.append(matched_class_preds)
+        matched_pooled_clip_feature_buffer.append(matched_pooled_clip_features)
 
         cls_targets, mask_targets, label_weights, _ = self.get_targets(sampling_results, gt_stuff_masks, gt_stuff_classes)
         cls_targets_buffer.append(cls_targets)
@@ -488,14 +518,21 @@ class _PFCHeadQueryPointsDisLoss(nn.Module):
                 sampling_results.append(sampling_result)
 
             cls_targets, mask_targets, label_weights, _ = self.get_targets(sampling_results, gt_stuff_masks, gt_stuff_classes)
+            matched_pooled_clip_features,matched_class_preds = self.get_matched_object(sampling_results,
+                                                                voxel_vision_clip,
+                                                                class_preds[layer] if class_preds[layer] is not None else class_preds[layer+1],
+                                                                mask_preds[layer])
+            matched_class_preds_buffer.append(matched_class_preds)
+            matched_pooled_clip_feature_buffer.append(matched_pooled_clip_features)
             cls_targets_buffer.append(cls_targets)
             mask_targets_buffer.append(mask_targets)
             label_weights_buffer.append(label_weights)
 
-        return cls_targets_buffer, mask_targets_buffer, label_weights_buffer
+
+        return cls_targets_buffer, mask_targets_buffer, label_weights_buffer, matched_pooled_clip_feature_buffer, matched_class_preds_buffer
 
     def loss_single_layer(self, class_preds, mask_preds, pos_mask_preds, class_targets, mask_targets, label_weights, layer,
-                          text_features,batch_data_samples, pooled_clip_feature,reduction_override=None):
+                          text_features,batch_data_samples,matched_pooled_clip_features, matched_class_preds,voxel_clip_feature=None,reduction_override=None):
         batch_size = len(mask_preds)
         losses = dict()
 
@@ -506,18 +543,32 @@ class _PFCHeadQueryPointsDisLoss(nn.Module):
         bool_pos_inds_split = bool_pos_inds.reshape(batch_size, -1)
 
         if class_preds is not None:
-            class_preds = [get_classification_logits(preds,text_features,self.logit_scale) for preds in class_preds]
-            class_preds = torch.cat(class_preds, 0)  # [B*N]
+            class_preds_similarity = [get_classification_logits(preds,text_features,self.logit_scale) for preds in class_preds]
+            class_preds_similarity = torch.cat(class_preds_similarity, 0)  # [B*N]
             label_weights = torch.cat(label_weights, 0)  # [B*N]
             num_pos = pos_inds.sum().float()
             avg_factor = reduce_mean(num_pos)
 
             losses[f'loss_cls_{layer}'] = self.loss_cls(
-                class_preds,
+                class_preds_similarity,
                 class_targets,
                 label_weights if self.use_lable_weight else None, 
                 avg_factor=avg_factor,
                 reduction_override=reduction_override)
+            
+            if self.use_lo:
+                matched_pooled_clip_features = torch.cat(matched_pooled_clip_features,dim=0)
+                matched_class_preds = torch.cat(matched_class_preds,dim=0)
+                losses[f'loss_object_distillation_{layer}'] = (1-self.object_distillation_loss(
+                            matched_class_preds,
+                            matched_pooled_clip_features)).mean()
+            
+            if self.use_lv:
+                voxel_clip_feature = torch.cat(voxel_clip_feature,dim=0)
+                m_q = torch.cat(mask_preds,dim=0)
+                class_preds = torch.cat(class_preds,dim=0)
+                f_rec = m_q.T @ class_preds
+                losses[f'loss_voxel_distillation_{layer}'] = self.voxel_distillation_loss(f_rec,voxel_clip_feature) / batch_size
 
         # mask loss
         loss_mask = 0
@@ -574,9 +625,6 @@ class _PFCHeadQueryPointsDisLoss(nn.Module):
             else:
                 losses[f'loss_dice_pos_{layer}'] = class_preds.sum() * 0.0
         
-        if self.use_lo:
-            losses[f'loss_object_distillation_loss'] = (1-self.object_distillation_loss(class_preds,
-                                                        pooled_clip_feature)).mean()
 
         return losses
 
@@ -693,7 +741,7 @@ class _PFCHeadQueryPointsDisLoss(nn.Module):
         voxel_vision_clip = batch_inputs['voxel_vision_features']
         fusion_feats = batch_inputs['features']
         projed_voxel_features = self.pe_vision_proj(fusion_feats) # [V，256]
-        class_preds_buffer, mask_preds_buffer, _, _,pooled_clip_feature_buffer = self.forward(projed_voxel_features, batch_inputs['voxels']['voxel_coors'],text_features,voxel_vision_clip)
+        class_preds_buffer, mask_preds_buffer, _, _,= self.forward(projed_voxel_features, batch_inputs['voxels']['voxel_coors'],text_features)
         voxel_coors = batch_inputs['voxels']['voxel_coors']
         batch_size = voxel_coors[:,0].max().item()+1
         mask_cls_results = class_preds_buffer[-1] # [134, 768]
