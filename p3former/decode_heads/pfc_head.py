@@ -238,7 +238,7 @@ class _PFCHead(nn.Module):
                 sem_pred = get_classification_logits(sem_fea,text_features,self.logit_scale)
                 sem_preds.append(sem_pred)
                 # stuff_queries = sem_queries[b][self.stuff_class] # [11,256]
-                base_stuff_queries = sem_que[self.base_stuff_class] # [6,256]
+                base_stuff_queries = sem_que[self.base_stuff_class] # [5,256]
                 queries[b] = torch.cat([queries[b], base_stuff_queries], dim=0) # [134,256]
 
         return queries, pe_features, mpe, sem_preds
@@ -852,4 +852,3 @@ class _PFCHead(nn.Module):
             semantic_preds.append(semantic_pred)
             instance_ids.append(instance_id)
         return (semantic_preds, instance_ids)
-s

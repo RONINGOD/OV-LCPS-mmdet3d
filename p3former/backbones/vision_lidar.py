@@ -43,13 +43,13 @@ class _VisionClipLiDAR(BaseModule):
 
     def forward(self, batch_inputs:dict,batch_data_samples:dict) -> Tensor:
         """Forward pass."""
-        clip_voxel_feats,voxel_coors = self.clip_backbone(batch_inputs,batch_data_samples)
+        clip_voxel_feats,voxel_coors = self.clip_backbone(batch_inputs,batch_data_samples) # [V,768]
         """Extract features from points."""
         lidar_encoded_feats = self.voxel_encoder(batch_inputs['voxels']['voxels'],
                                            batch_inputs['voxels']['coors'])
         lidar_voxel_feats = self.lidar_backbone(lidar_encoded_feats[0], lidar_encoded_feats[1],
                           len(batch_inputs['points']))
-        lidar_voxel_feats = lidar_voxel_feats.features
-        voxel_feats = torch.cat([clip_voxel_feats,lidar_voxel_feats],dim=1)
+        lidar_voxel_feats = lidar_voxel_feats.features # [V, 128]
+        voxel_feats = torch.cat([clip_voxel_feats,lidar_voxel_feats],dim=1) # [V,896]
         batch_inputs['voxel_vision_features'] = clip_voxel_feats
         return voxel_feats,voxel_coors
