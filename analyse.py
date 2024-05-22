@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import mmengine
 import os
+from nuscenes.nuscenes import NuScenes
 
 # data = mmengine.load('/home/coisini/data/nuscenes/nus_pkl/nuscenes_infos_val.pkl')
 # print(data.keys())
@@ -106,9 +107,32 @@ import torch
 #     # 使用pickle.load()方法读取数据
 #     pkl_data = pickle.load(file)
 # print(pkl_data)
+data_root = '/home/coisini/data/nuscenes'
+split = 'val'
+with open(f'{data_root}/nus_pkl/nuscenes_infos_{split}.pkl', 'rb') as f:
+    nusc_data = pickle.load(f)['data_list']
+index = 10
+info = nusc_data[index]
+scene_token = info['token']
+sem_path = os.path.join(data_root,info['pts_semantic_mask_path'])
+sem_data = np.fromfile(sem_path, dtype=np.uint8).reshape([-1, 1])
+data = torch.load(f'/home/coisini/data/nuscenes_3d/val/{scene_token}.pth')
+locs_in = data[0]
+labels_in = data[2]
+mask_entire = labels_in!=255
+import yaml
+with open("/home/coisini/project/Ovlcps/configs/_base_/datasets/nuscenes.yaml", 'r') as stream:
+    nuscenesyaml = yaml.safe_load(stream)
 
-# data = torch.load('/home/coisini/data/nuscenes_3d/val/0a0d6b8c2e884134a3b48df43d54c36a.pth')
-# print(data[0].shape,data[2].shape)
+learning_map = nuscenesyaml['learning_map']
+points_label = np.vectorize(learning_map.__getitem__)(sem_data)
+
+locs_in = locs_in[mask_entire]
+points_mask = torch.zeros(mask_entire.shape[0], dtype=torch.bool)
+n_points = locs_in.shape[0]# nusc = NuScenes(version='v1.0-trainval',dataroot='/home/coisini/data/nuscenes',verbose=True)
+
+
+print(data[0].shape,data[2].shape)
 
 # data = np.load('/home/coisini/data/nuscenes_openseg_features/samples/LIDAR_TOP/n015-2018-07-24-11-22-45+0800__LIDAR_TOP__1532402928147847.npz')
 # print(data['point_mask'].shape)
@@ -145,6 +169,6 @@ import torch
 # make sure voxelization is right
 # print((features - pc_range[None, :3]) // voxel_size_t[None,:])
 
-base = np.load('/home/coisini/data/nuscenes_openseg_features/base_text_features.npy')
-total = np.load('/home/coisini/data/nuscenes_openseg_features/total_text_features.npy')
-print((base-total[:13,:]).sum())
+# base = np.load('/home/coisini/data/nuscenes_openseg_features/base_text_features.npy')
+# total = np.load('/home/coisini/data/nuscenes_openseg_features/total_text_features.npy')
+# print((base-total[:13,:]).sum())

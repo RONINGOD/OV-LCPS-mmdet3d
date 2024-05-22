@@ -786,10 +786,12 @@ class _PFCHeadQuery(nn.Module):
         for i in range(len(class_preds)):
             class_pred = class_preds[i]
             mask_pred = mask_preds[i]
+            thing_stuff_class = torch.cat([self.thing_class,self.stuff_class])
             if self.panoptic_use_sigmoid:
-                scores,labels = class_pred.sigmod().max(dim=-1)
+                scores,labels = class_pred[:self.num_queries][:,thing_stuff_class].sigmod().max(dim=-1)
             else:
-                scores,labels = class_pred.max(dim=-1)
+                scores,labels = class_pred[:self.num_queries][:,thing_stuff_class].max(dim=-1)
+            labels += self.thing_class[0]
             thing_mask = torch.isin(labels,self.thing_class)
             scores[thing_mask] *= 2
             keep = ((scores > self.score_thr) & (labels != self.ignore_index))

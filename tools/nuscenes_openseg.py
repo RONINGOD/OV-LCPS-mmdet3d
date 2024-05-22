@@ -109,6 +109,7 @@ def main(args):
                             'building', 'wall', 'pole', 'awning', 'tree', 'trunk', 'tree trunk', 'bush', 'shrub', 'plant', 'flower', 'woods']
     with open("configs/_base_/datasets/nuscenes.yaml", 'r') as stream:
         nuscenesyaml = yaml.safe_load(stream)
+    learning_map = nuscenesyaml['learning_map']
     base_thing_list = [cl for cl, is_thing in nuscenesyaml['base_thing_class'].items() if is_thing]
     base_stuff_list = [cl for cl, is_stuff in nuscenesyaml['base_stuff_class'].items() if is_stuff]
     novel_thing_list = [cl for cl, is_thing in nuscenesyaml['novel_thing_class'].items() if is_thing]
@@ -184,11 +185,19 @@ def main(args):
         #     })
         #     pbar.update(1)
         #     continue
-
+        
         key_frame_points = np.fromfile(os.path.join(data_root, lidar_path), dtype=np.float32, count=-1).reshape([-1, 5])
+        pts_semantic_mask_path = os.path.join(data_root,info['pts_semantic_mask_path'])
+        pts_semantic_mask = np.fromfile(pts_semantic_mask_path, dtype=np.uint8).reshape([-1, 1])
+        points_label = np.vectorize(learning_map.__getitem__)(pts_semantic_mask)
+        mask_entire = points_label!=0
+        mask_entire = mask_entire[:,0]
+        key_frame_points = key_frame_points[mask_entire]
+        points_mask = torch.zeros(mask_entire.shape[0], dtype=torch.bool)
+        
         sweep_points_list = [key_frame_points]
         ts = info['timestamp']
-        if 'lidar_sweeps' in info:
+        if 'lidar_sweeps' in info and fuse_sweeps_feat:
             if len(info['lidar_sweeps']) <= sweeps_num:
                 choices = np.arange(len(info['lidar_sweeps']))
             elif split=='test':
@@ -283,13 +292,15 @@ def main(args):
         mask = torch.zeros(n_points_cur, dtype=torch.bool)
         mask[point_ids] = True
         feat_save = feat_bank[mask].half().numpy()
+        points_mask[mask_entire] = mask
+        points_mask = points_mask.numpy()
         sweeps_mask = torch.zeros(total_points.shape[0],dtype=torch.bool)
         sweeps_mask[:n_points_cur] = mask
         mask = mask.numpy()
         sweeps_mask = sweeps_mask.numpy()
         dir_name = os.path.dirname(img_features_path)
         make_file(dir_name)
-        np.savez_compressed(img_features_path, point_feat=feat_save, point_mask=mask)   
+        np.savez_compressed(img_features_path, point_feat=feat_save, point_mask=points_mask)   
         pbar.set_postfix({
             "token":sample_data['token'],
             "finished in ":"{:.2f}s".format(time.time()-start_time)

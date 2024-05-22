@@ -555,24 +555,24 @@ class _PFCHeadQueryPointsDisLoss(nn.Module):
                 label_weights if self.use_lable_weight else None, 
                 avg_factor=avg_factor,
                 reduction_override=reduction_override)
-            
-            if self.use_lo:
-                matched_pooled_clip_features = torch.cat(matched_pooled_clip_features,dim=0)
-                matched_class_preds = torch.cat(matched_class_preds,dim=0)
-                losses[f'loss_object_distillation_{layer}'] = (1-self.object_distillation_loss(
-                            matched_class_preds,
-                            matched_pooled_clip_features)).mean()
-            
-            if self.use_lv:
-                loss_voxel_distillation = 0
-                valid_bs = 0
-                for b in range(batch_size):
-                    clip_feature = voxel_clip_feature[b]
-                    m_q = mask_preds[b]
-                    class_pred = class_preds[b]
-                    f_rec = m_q.T @ class_pred
-                    loss_voxel_distillation +=self.voxel_distillation_loss(f_rec,clip_feature)
-                losses[f'loss_voxel_distillation_{layer}'] = loss_voxel_distillation / batch_size
+            if layer==self.num_decoder_layers:
+                if self.use_lo:
+                    matched_pooled_clip_features = torch.cat(matched_pooled_clip_features,dim=0)
+                    matched_class_preds = torch.cat(matched_class_preds,dim=0)
+                    losses[f'loss_object_distillation_{layer}'] = (1-self.object_distillation_loss(
+                                matched_class_preds,
+                                matched_pooled_clip_features)).mean()
+                
+                if self.use_lv:
+                    loss_voxel_distillation = 0
+                    valid_bs = 0
+                    for b in range(batch_size):
+                        clip_feature = voxel_clip_feature[b]
+                        m_q = mask_preds[b]
+                        class_pred = class_preds[b]
+                        f_rec = m_q.T @ class_pred
+                        loss_voxel_distillation +=self.voxel_distillation_loss(f_rec,clip_feature)
+                    losses[f'loss_voxel_distillation_{layer}'] = loss_voxel_distillation / batch_size
 
         # mask loss
         loss_mask = 0
